@@ -1,0 +1,479 @@
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #f5f7fa;
+}
+
+.auth-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-box {
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.auth-box h2 {
+  margin-bottom: 20px;
+}
+
+.auth-box input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.auth-box button {
+  width: 100%;
+  padding: 10px;
+  background: #67f06b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.auth-box button:hover {
+  background: #45a049;
+}
+
+/* OTP */
+.otp-box {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+}
+
+.otp-box input {
+  width: 40px;
+  height: 45px;
+  text-align: center;
+  font-size: 18px;
+}
+/* ///////////////////otp/////////// */
+.timer {
+  color: #555;
+  font-size: 14px;
+  margin: 10px 0;
+}
+
+.resend {
+  color: #4CAF50;
+  cursor: pointer;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.resend:hover {
+  text-decoration: underline;
+}
+
+
+
+
+/* ///////////otp ///// */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+body {
+  /* height: 100vh; */
+}
+
+/* Background */
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: linear-gradient(to top, #f7f7f8, #ffffff);
+  position: relative;
+  overflow: hidden;
+}
+
+/* stars effect */
+.login-container::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  /* background: url("https://www.transparenttextures.com/patterns/stardust.png"); */
+  opacity: 0.4;
+}
+
+/* glass box */
+.login-box {
+  position: relative;
+  width: 500px;
+  padding: 30px;
+  border-radius: 15px;
+
+  backdrop-filter: blur(15px);
+  background: rgb(174, 224, 244);
+
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+  color: white;
+}
+
+/* heading */
+.login-box h2 {
+  margin-bottom: 20px;
+}
+
+/* input */
+.input-box {
+  margin-bottom: 15px;
+}
+
+.input-box input {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+
+  background: rgba(251, 252, 252, 0.966);
+  color: white;
+}
+
+.input-box input::placeholder {
+  color: #ddd;
+}
+
+/* options */
+.options {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 15px;
+}
+
+.forgot {
+  cursor: pointer;
+}
+
+/* button */
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 25px;
+  border: none;
+  background: rgb(4, 197, 4);
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+.login-btn:hover {
+  background: rgb(7, 162, 66);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* register */
+.register-text {
+  margin-top: 15px;
+  font-size: 12px;
+}
+
+.register-text span {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+
+
+/* /////////////////otp //////////////// */
+
+.auth-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f4f6f9;
+}
+
+.auth-box {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 450px;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+.otp-box {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.otp-input {
+  width: 45px;
+  height: 50px;
+  font-size: 20px;
+  text-align: center;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+
+.otp-input:focus {
+  border-color: #3fb4b6;
+  outline: none;
+  transform: scale(1.05);
+}
+
+.otp-input.filled {
+  border-color: #156d29;
+}
+
+.timer {
+  color: gray;
+}
+
+.resend {
+  color: #3fb4b6;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.verify-btn {
+  width: 100%;
+  padding: 10px;
+  background: #3fb4b6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+
+
+
+/* //////////////////resent otp////////////////////// */
+.resend-link {
+  color: #28a745; /* green */
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.resend-link:hover {
+  text-decoration: underline;
+}
+
+.resend-link.disabled {
+  color: gray;
+  cursor: not-allowed;
+}
+
+
+
+
+/* ////////////////login//////// */
+
+/* Background */
+.main-container {
+  height: 100vh;
+  background: linear-gradient(to right, #c1cdd8, #ccd1d2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card */
+.login-card {
+  width: 950px;
+  height: 500px;
+  display: flex;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.329);
+}
+
+/* Left panel */
+.left-panel {
+  width: 50%;
+  background: #f5f9ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.left-panel img {
+  width: 70%;
+}
+
+/* Right panel */
+.right-panel {
+  width: 50%;
+  padding: 30px;
+}
+
+.title {
+  text-align: center;
+  color: #007bff;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 12px;
+  margin-bottom: 20px;
+  color: gray;
+}
+
+/* Inputs */
+.input-group {
+  margin-bottom: 15px;
+}
+
+.input-group label {
+  font-size: 16px;
+  font-family:Arial, Helvetica, sans-serif;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  border-radius:10px;
+  border: 1px solid #ccc;
+  margin-top: 5px;
+}
+
+/* Forgot */
+.forgot {
+  text-align: right;
+  font-size: 12px;
+  color: #007bff;
+  cursor: pointer;
+}
+
+/* Buttons */
+.btn-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.login-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 20px;
+  background: #007bff;
+  color: white;
+}
+
+
+
+/* //////////////////////signup///////////////// */
+/* Container */
+.login {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #c7dff3, #909797f5);
+  display: flex;
+  align-items: center;
+}
+
+/* Card */
+.login .bg-light {
+  background: #ffffff !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  border-radius: 20px !important;
+  transition: 0.3s;
+}
+
+.login .bg-light:hover {
+  transform: translateY(-5px);
+}
+
+/* Heading */
+.login h5 {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Inputs */
+.form-control {
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  transition: 0.3s;
+}
+
+.form-control:focus {
+  border-color: #4facfe;
+  box-shadow: 0 0 5px rgba(79, 172, 254, 0.5);
+}
+
+/* Custom border */
+.myborder {
+  border: 1px solid #ccc !important;
+}
+
+/* Error */
+.border-danger {
+  border: 1px solid red !important;
+}
+
+/* Labels */
+label {
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+/* Button */
+.mybackground {
+  background: linear-gradient(135deg, #1863d3, #165cde);
+  color: white;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.mybackground:hover {
+  background: linear-gradient(135deg, #02e74e, #26ac51);
+  transform: scale(1.03);
+}
+
+/* Text link */
+.shop-account a {
+  color: #4facfe;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.shop-account a:hover {
+  text-decoration: underline;
+}
+
+/* Error text */
+.text-danger {
+  font-size: 13px;
+  margin-top: 4px;
+}

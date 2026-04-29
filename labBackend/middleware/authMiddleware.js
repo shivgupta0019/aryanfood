@@ -1,0 +1,28 @@
+const jwt = require("jsonwebtoken");
+const { blacklistedTokens } = require("../utils/tokenStore");
+
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "No token" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  // 🔥 Logout wale token block karo
+  if (blacklistedTokens.includes(token)) {
+    return res.status(401).json({ message: "Token expired (logged out)" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+module.exports = authMiddleware;

@@ -1,0 +1,93 @@
+.user-container {
+  max-width: 1100px;
+  margin: 30px auto;
+  margin-top: 110px;
+}
+
+.user-title {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+/* Table Wrapper */
+.table-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Table */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Header */
+.user-table thead {
+  background: linear-gradient(135deg, #16283a, #1c3e60);
+  color: #fff;
+}
+
+.user-table th {
+  padding: 14px;
+  text-align: left;
+}
+
+/* Rows */
+.table-row {
+  transition: 0.2s;
+  cursor: pointer;
+}
+
+.table-row:hover {
+  background: #eaebec;
+  transform: scale(1.01);
+}
+
+/* Cells */
+.user-table td {
+  padding: 12px;
+}
+
+/* No Data */
+.no-data {
+  text-align: center;
+  padding: 30px;
+  color: #999;
+}
+
+/* Location Badge */
+.location-badge {
+  color: black;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 15px;
+  font-family:Arial, Helvetica, sans-serif;
+}
+
+/* Icons */
+.action-icons {
+  display: flex;
+  gap: 16px;
+  font-size: 0px;
+}
+
+/* Icon Base */
+.icon {
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 20px;
+}
+
+.icon:hover {
+  transform: scale(1.2);
+}
+
+/* Colors */
+.blue { color: #131b3c; }
+.green { color: #131b3c; }
+.yellow { color: #131b3c; }
+.red { color: #131b3c; }
+.purple { color: #131b3c; }
