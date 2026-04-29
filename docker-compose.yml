@@ -1,0 +1,16 @@
+services:
+  backend:
+    image: my-backend:latest
+    container_name: node_backend
+    ports:
+      - "5000:5000"
+    restart: always
+
+  frontend:
+    image: my-frontend:latest
+    container_name: react_frontend
+    ports:
+      - "5137:5137"
+    restart: always
+    depends_on:
+      - backend
