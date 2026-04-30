@@ -98,14 +98,10 @@ export default function OTPPage() {
     }
   }, [otp]);
 
- 
-  
-  
-
   async function handleVerify() {
     try {
       let res = await axios.post(
-        "http://localhost:5000/api/verify-otp",
+        "http://80.225.246.52:5137/api/verify-otp",
         {
           email: localStorage.getItem("email"),
           otp: otp.join(""),
@@ -141,7 +137,7 @@ export default function OTPPage() {
     if (!resendActive) return;
 
     try {
-      let res = await axios.post("http://localhost:5000/api/resend-otp", {
+      let res = await axios.post("http://80.225.246.52:5137/api/resend-otp", {
         email: localStorage.getItem("email"),
       });
 

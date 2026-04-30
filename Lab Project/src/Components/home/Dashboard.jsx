@@ -85,31 +85,38 @@ export default function Dashboard() {
     }
   }, []);
 
-  // ✅ PROFILE API CALL (CORRECT)
+  // ✅ FETCH USER DATA FROM /api/user WITH AUTHORIZATION HEADER
   useEffect(() => {
     async function loadProfile() {
       try {
         const token = localStorage.getItem("token");
 
-        const res = await api.get("/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        if (!token) {
+          navigate("/");
+          return;
+        }
+
+        // ✅ API interceptor will automatically add Authorization header
+        const res = await api.get("/user");
 
         setProfile({
-          name: res.data.full_name || "",
+          name: res.data.name || res.data.full_name || "User",
           email: res.data.email || "",
-          phone: res.data.phone || "",
-          photo: res.data.photo || null,
+          phone: res.data.phone || res.data.contact || "",
+          photo: res.data.photo || res.data.avatar || null,
         });
       } catch (err) {
-        console.log(err);
+        console.error("Failed to fetch user data:", err);
+        // If 401 or token invalid, interceptor will handle redirect
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/");
+        }
       }
     }
 
     loadProfile();
-  }, []);
+  }, [navigate]);
 
   // ✅ LINKS
   const allLinks = [
@@ -301,7 +308,7 @@ export default function Dashboard() {
                     <img
                       src={
                         profile.photo
-                          ? `http://localhost:5000${profile.photo}`
+                          ? `http://80.225.246.52:5137${profile.photo}`
                           : ""
                       }
                       alt="avatar"

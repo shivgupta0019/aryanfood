@@ -16,12 +16,11 @@ export default function ForgotPassword() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/forgot-password",
-        { email }
+        "http://80.225.246.52:5137/api/forgot-password",
+        { email },
       );
 
       alert(res.data.message); //  "Reset link sent"
-
     } catch (err) {
       setError(err.response?.data?.message || "Something went wrong");
     }
@@ -30,7 +29,6 @@ export default function ForgotPassword() {
   return (
     <div className="main-container">
       <div className="login-card">
-
         {/* Left */}
         <div className="left-panel">
           <img

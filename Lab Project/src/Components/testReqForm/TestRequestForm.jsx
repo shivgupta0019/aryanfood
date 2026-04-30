@@ -86,7 +86,7 @@ const TestRequestForm = () => {
   const handleGetAllTests = async () => {
     setLoadingTests(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/tests");
+      const response = await axios.get("http://80.225.246.52:5137/api/tests");
       if (response.data && response.data.TESTING_FIELDS) {
         setAllTestingFields(response.data.TESTING_FIELDS);
       }
@@ -102,7 +102,7 @@ const TestRequestForm = () => {
     setLoadingCompanies(true);
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/getCompanies",
+        "http://80.225.246.52:5137/api/getCompanies",
       );
       if (response.data && response.data.allCompanies) {
         setCompaniesData(response.data.allCompanies);
@@ -117,7 +117,7 @@ const TestRequestForm = () => {
   const handleGetLab = async () => {
     setLoadingLabs(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/labs");
+      const response = await axios.get("http://80.225.246.52:5137/api/labs");
       if (response.data && response.data.allLabs) {
         setAllLabs(response.data.allLabs);
       }
@@ -131,7 +131,9 @@ const TestRequestForm = () => {
   const handleGetProduct = async () => {
     setLoadingProducts(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/products");
+      const response = await axios.get(
+        "http://80.225.246.52:5137/api/products",
+      );
       if (response.data && response.data.allProducts) {
         setAllProducts(response.data.allProducts);
       }
@@ -145,7 +147,7 @@ const TestRequestForm = () => {
   const fetchTrfList = async () => {
     setLoadingTrfList(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/trf");
+      const response = await axios.get("http://80.225.246.52:5137/api/trf");
       setTrfList(response.data);
     } catch (error) {
       console.error("Error fetching TRF list:", error);
@@ -270,7 +272,7 @@ const TestRequestForm = () => {
     setLoadingEditId(trf.id);
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/trf/${trf.id}`,
+        `http://80.225.246.52:5137/api/trf/${trf.id}`,
       );
       const data = response.data;
 
@@ -339,7 +341,7 @@ const TestRequestForm = () => {
     setDeletingId(id);
     try {
       const response = await axios.delete(
-        `http://localhost:5000/api/trf/${id}`,
+        `http://80.225.246.52:5137/api/trf/${id}`,
       );
       if (response.data.success) {
         alert("TRF deleted successfully");
@@ -412,11 +414,14 @@ const TestRequestForm = () => {
     setSaving(true);
     try {
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/trf/${editingId}`, payload);
+        await axios.put(
+          `http://80.225.246.52:5137/api/trf/${editingId}`,
+          payload,
+        );
         alert("TRF updated successfully!");
       } else {
         const response = await axios.post(
-          "http://localhost:5000/api/trf",
+          "http://80.225.246.52:5137/api/trf",
           payload,
         );
         if (response.data.success) {

@@ -1,4 +1,4 @@
-import { useNavigate, useParams ,useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
 import "../Style/userotp.css";
@@ -11,38 +11,36 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-const query = new URLSearchParams(useLocation().search);
-const token = query.get("session");
+  const query = new URLSearchParams(useLocation().search);
+  const token = query.get("session");
   //  RESET FUNCTION
   async function handleReset(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (newPassword !== confirmPassword) {
-    setError("Passwords do not match ");
-    return;
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match ");
+      return;
+    }
+
+    try {
+      let res = await axios.post(
+        "http://80.225.246.52:5137/api/reset-password",
+        {
+          token: token,
+          newPassword: newPassword,
+        },
+      );
+
+      alert(res.data.message);
+
+      navigate("/"); // 🔥 login page
+    } catch (err) {
+      alert(err.response?.data?.message);
+    }
   }
-
-  try {
-    let res = await axios.post(
-      "http://localhost:5000/api/reset-password",
-      {
-        token: token,
-        newPassword: newPassword,
-      }
-    );
-
-    alert(res.data.message);
-
-    navigate("/"); // 🔥 login page
-
-  } catch (err) {
-    alert(err.response?.data?.message);
-  }
-}
   return (
     <div className="main-container">
       <div className="login-card">
-
         {/* Left Side */}
         <div className="left-panel">
           <img
@@ -103,7 +101,6 @@ const token = query.get("session");
               </p>
             </div>
           </form>
-
         </div>
       </div>
     </div>

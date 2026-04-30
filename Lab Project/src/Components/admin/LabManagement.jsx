@@ -706,7 +706,7 @@ export default function LabManagement() {
   const fetchAllTests = async () => {
     setTestFetchLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/tests");
+      const response = await axios.get("http://80.225.246.52:5137/api/tests");
       if (response.data && response.data.TESTING_FIELDS) {
         setAllTestingFilds(response.data.TESTING_FIELDS);
       }
@@ -736,7 +736,7 @@ export default function LabManagement() {
     setCompanyFetchLoading(true);
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/getCompanies",
+        "http://80.225.246.52:5137/api/getCompanies",
       );
       if (response.data && response.data.allCompanies) {
         setSavedCompanies(response.data.allCompanies);
@@ -766,7 +766,7 @@ export default function LabManagement() {
         companyCode: generatedCode,
       };
       const response = await axios.post(
-        "http://localhost:5000/api/companies",
+        "http://80.225.246.52:5137/api/companies",
         payload,
       );
       if (response.data && response.data.allCompanies) {
@@ -797,7 +797,7 @@ export default function LabManagement() {
     setCompanyEditSaveLoading(true);
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/companies/${editingCompanyId}`,
+        `http://80.225.246.52:5137/api/companies/${editingCompanyId}`,
         {
           companyName: editingCompanyData.companyName,
           gst: editingCompanyData.gst,
@@ -826,7 +826,7 @@ export default function LabManagement() {
     setCompanyDeleteLoading(id);
     try {
       const response = await axios.delete(
-        `http://localhost:5000/api/companies/${id}`,
+        `http://80.225.246.52:5137/api/companies/${id}`,
       );
       if (response.data && response.data.allCompanies) {
         setSavedCompanies(response.data.allCompanies);
@@ -844,7 +844,7 @@ export default function LabManagement() {
   const handleGetLab = async () => {
     setLabFetchLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/labs");
+      const response = await axios.get("http://80.225.246.52:5137/api/labs");
       if (response.data && response.data.allLabs) {
         setSavedLabs(response.data.allLabs);
       }
@@ -868,7 +868,7 @@ export default function LabManagement() {
     setLabSaveLoading(true);
     try {
       const generatedCode = generateCode("LAB");
-      const response = await axios.post("http://localhost:5000/api/labs", {
+      const response = await axios.post("http://80.225.246.52:5137/api/labs", {
         labName: labData.labName,
         gst: labData.gst,
         address: labData.address,
@@ -905,7 +905,7 @@ export default function LabManagement() {
     setLabEditSaveLoading(true);
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/labs/${editingLabId}`,
+        `http://80.225.246.52:5137/api/labs/${editingLabId}`,
         {
           labName: editingLabData.labName,
           gst: editingLabData.gst,
@@ -935,7 +935,7 @@ export default function LabManagement() {
     setLabDeleteLoading(id);
     try {
       const response = await axios.delete(
-        `http://localhost:5000/api/labs/${id}`,
+        `http://80.225.246.52:5137/api/labs/${id}`,
       );
       if (response.data && response.data.allLabs) {
         setSavedLabs(response.data.allLabs);
@@ -953,7 +953,9 @@ export default function LabManagement() {
   const handleGetProduct = async () => {
     setProductFetchLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/products");
+      const response = await axios.get(
+        "http://80.225.246.52:5137/api/products",
+      );
       if (response.data && response.data.allProducts) {
         setSavedProducts(response.data.allProducts);
       }
@@ -973,10 +975,13 @@ export default function LabManagement() {
     setProductSaveLoading(true);
     try {
       const generatedId = generateCode("SMP");
-      const response = await axios.post("http://localhost:5000/api/products", {
-        productName: productData.productName,
-        productId: generatedId,
-      });
+      const response = await axios.post(
+        "http://80.225.246.52:5137/api/products",
+        {
+          productName: productData.productName,
+          productId: generatedId,
+        },
+      );
       if (response.data && response.data.allProducts) {
         setSavedProducts(response.data.allProducts);
         alert("Product saved successfully!");
@@ -995,7 +1000,7 @@ export default function LabManagement() {
     setProductDeleteLoading(id);
     try {
       const response = await axios.delete(
-        `http://localhost:5000/api/products/${id}`,
+        `http://80.225.246.52:5137/api/products/${id}`,
       );
       if (response.data && response.data.allProducts) {
         setSavedProducts(response.data.allProducts);
@@ -1072,7 +1077,7 @@ export default function LabManagement() {
           placeholder: f.placeholder || "",
         })),
       };
-      const res = await fetch("http://localhost:5000/api/create-test", {
+      const res = await fetch("http://80.225.246.52:5137/api/create-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
