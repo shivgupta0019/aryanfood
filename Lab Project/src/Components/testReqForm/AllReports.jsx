@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-
-const API_BASE = "http://80.225.246.52:5137/api";
+import api from "../../api/axiosConfig";
 
 // Spinner Component
 const Spinner = ({ size = 20, color = "#000000" }) => (
@@ -47,8 +46,8 @@ const ViewModal = ({ trf, onClose }) => {
 
   useEffect(() => {
     setLoading(true);
-    axios
-      .get(`${API_BASE}/trf/user/${trf.id}`)
+    api
+      .get(`/trf/user/${trf.id}`)
       .then((res) => setDetails(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -292,8 +291,8 @@ const AllReports = () => {
 
   // Fetch test name → testId mapping
   useEffect(() => {
-    axios
-      .get(`${API_BASE}/tests`)
+    api
+      .get(`/tests`)
       .then((res) => {
         const mapping = {};
         Object.entries(res.data.TESTING_FIELDS).forEach(([name, fields]) => {
@@ -308,7 +307,7 @@ const AllReports = () => {
     if (showRefresh) setRefreshing(true);
     else setLoadingList(true);
     try {
-      const response = await axios.get(`${API_BASE}/trf/filled`);
+      const response = await api.get(`/trf/filled`);
       setTrfList(response.data);
     } catch (err) {
       console.error(err);
@@ -329,7 +328,7 @@ const AllReports = () => {
     setEditLoading(true); // show loader inside modal
     setEditTestData(null); // clear previous data
     try {
-      const res = await axios.get(`${API_BASE}/trf/user/${trf.id}`);
+      const res = await api.get(`/trf/user/${trf.id}`);
       const { trf: trfInfo, fieldsByTest } = res.data;
       const testDataObj = {};
       for (const [testName, fields] of Object.entries(fieldsByTest)) {
@@ -421,7 +420,7 @@ const AllReports = () => {
     };
     setSaving(true);
     try {
-      await axios.put(`${API_BASE}/trf/${editingTrf.id}`, payload);
+      await api.put(`/trf/${editingTrf.id}`, payload);
       alert("Updated successfully!");
       setEditingTrf(null);
       setEditTestData(null);

@@ -2,6 +2,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
 import "../Style/userotp.css";
+import api from "../../api/axiosConfig";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -23,13 +24,10 @@ export default function ResetPassword() {
     }
 
     try {
-      let res = await axios.post(
-        "http://80.225.246.52:5137/api/reset-password",
-        {
-          token: token,
-          newPassword: newPassword,
-        },
-      );
+      let res = await api.post("/reset-password", {
+        token: token,
+        newPassword: newPassword,
+      });
 
       alert(res.data.message);
 

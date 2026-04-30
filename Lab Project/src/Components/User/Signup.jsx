@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../Components/Style/userotp.css";
 import FormValidators from "./FormValidators";
 import axios from "axios";
+import api from "../../api/axiosConfig";
 
 export default function SignupPage() {
   let [data, setData] = useState({
@@ -45,7 +46,7 @@ export default function SignupPage() {
     }
 
     try {
-      let res = await axios.post("http://80.225.246.52:5137/api/signup", {
+      let res = await api.post("/signup", {
         name: data.name,
         email: data.email,
         phone: data.phone,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-
-const API_BASE = "http://80.225.246.52:5137/api";
+import api from "../../api/axiosConfig";
 
 // Spinner Component
 const Spinner = ({ size = 20, color = "#000000" }) => (
@@ -268,7 +267,7 @@ const AllTestRequests = () => {
     if (showRefreshLoader) setRefreshing(true);
     else setLoadingList(true);
     try {
-      const response = await axios.get(`${API_BASE}/trf`);
+      const response = await api.get(`/trf`);
       setTrfList(response.data);
     } catch (error) {
       console.error("Failed to load TRFs", error);
@@ -288,7 +287,7 @@ const AllTestRequests = () => {
     setViewLoading(true);
     setSelectedTrf(trf);
     try {
-      const response = await axios.get(`${API_BASE}/trf/user/${trf.id}`);
+      const response = await api.get(`/trf/user/${trf.id}`);
       setSelectedFieldsByTest(response.data.fieldsByTest);
     } catch (error) {
       alert("Failed to load details");
@@ -303,7 +302,7 @@ const AllTestRequests = () => {
     setEditLoading(true);
     setEditingTrf(trf);
     try {
-      const response = await axios.get(`${API_BASE}/trf/user/${trf.id}`);
+      const response = await api.get(`/trf/user/${trf.id}`);
       setEditFieldsByTest(response.data.fieldsByTest);
     } catch (error) {
       alert("Failed to load fields for editing");
@@ -335,7 +334,7 @@ const AllTestRequests = () => {
     const payload = { fields };
     setSaving(true);
     try {
-      await axios.patch(`${API_BASE}/trf/${editingTrf.id}/fill`, payload);
+      await api.patch(`/trf/${editingTrf.id}/fill`, payload);
       alert("Test results saved successfully!");
       setEditingTrf(null);
       setEditFieldsByTest({});

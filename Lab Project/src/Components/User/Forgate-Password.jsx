@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
 import "../Style/userotp.css";
+import api from "../../api/axiosConfig";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -15,10 +16,7 @@ export default function ForgotPassword() {
     setError("");
 
     try {
-      const res = await axios.post(
-        "http://80.225.246.52:5137/api/forgot-password",
-        { email },
-      );
+      const res = await api.post("/forgot-password", { email });
 
       alert(res.data.message); //  "Reset link sent"
     } catch (err) {

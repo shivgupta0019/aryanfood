@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Style/userotp.css";
 import axios from "axios";
+import api from "../../api/axiosConfig";
 
 export default function OTPPage() {
   const navigate = useNavigate();
@@ -100,8 +101,8 @@ export default function OTPPage() {
 
   async function handleVerify() {
     try {
-      let res = await axios.post(
-        "http://80.225.246.52:5137/api/verify-otp",
+      let res = await api.post(
+        "/verify-otp",
         {
           email: localStorage.getItem("email"),
           otp: otp.join(""),
@@ -137,7 +138,7 @@ export default function OTPPage() {
     if (!resendActive) return;
 
     try {
-      let res = await axios.post("http://80.225.246.52:5137/api/resend-otp", {
+      let res = await api.post("/resend-otp", {
         email: localStorage.getItem("email"),
       });
 
