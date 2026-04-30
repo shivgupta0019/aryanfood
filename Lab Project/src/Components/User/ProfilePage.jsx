@@ -180,7 +180,7 @@ export default function ProfilePage() {
                     preview
                       ? preview
                       : profileData.photo
-                        ? `http://localhost:5000${profileData.photo}?t=${imageVersion}`
+                        ? `http://80.225.246.52:5137${profileData.photo}?t=${imageVersion}`
                         : ""
                   }
                   alt="profile"

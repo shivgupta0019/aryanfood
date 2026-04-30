@@ -24,7 +24,6 @@ const {
   getFilledTrfs,
 } = require("../controllers/useTrf");
 
-
 const {
   allCompanies,
   getAllCompanies,
@@ -40,7 +39,10 @@ const {
   getAllTest,
   createTest,
 } = require("../controllers/useAdminLab");
-const { getProfile, updateProfile } = require("../controllers/profileController");
+const {
+  getProfile,
+  updateProfile,
+} = require("../controllers/profileController");
 const profileMiddleware = require("../middleware/profileMiddleware");
 const upload = require("../middleware/upload");
 
@@ -57,11 +59,15 @@ router.get("/users", authMiddleware, getUsers);
 router.put("/users/:id/role", authMiddleware, updateUserRole);
 router.post("/toggle-admin", authMiddleware, toggleAdmin);
 
-router.get("/profile",profileMiddleware,getProfile);
-router.put("/profile",profileMiddleware,upload.single("photo"),updateProfile);
+router.get("/profile", profileMiddleware, getProfile);
+router.put(
+  "/profile",
+  profileMiddleware,
+  upload.single("photo"),
+  updateProfile,
+);
 
 router.post("/logout", authMiddleware, logout);
-
 
 //lab routes
 router.post("/companies", allCompanies);
