@@ -12,6 +12,7 @@ import CentrallabPage from "./Components/CentralLab/CentralLabPage";
 import CentralLabForm from "./Components/CentralLab/CentralLabForm";
 
 import Dashboard from "./Components/home/Dashboard";
+import DashboardPage from "./Components/home/DashboardPage";
 
 import ProfilePage from "./Components/User/ProfilePage";
 import DownloadResults from "./Components/DownloadResults";
@@ -36,20 +37,21 @@ export default function App() {
 function Layout() {
   const location = useLocation();
 
-  // 👉 jin routes pe dashboard nahi chahiye
+  // 👉 jin routes pe dashboard navbar nahi chahiye
   const hideRoutes = [
     "/",
     "/signup",
     "/otp",
     "/forgot-password",
     "/reset-password",
+    "/dashboard",
   ];
 
   const hideDashboard = hideRoutes.includes(location.pathname);
 
   return (
     <>
-      {/*  Dashboard sirf tab dikhe jab allowed ho */}
+      {/*  Dashboard navbar sirf tab dikhe jab allowed ho */}
       {!hideDashboard && <Dashboard />}
       <Routes>
         {/* <Route path="/centrallab" element={<CentrallabPage />} /> */}
@@ -71,6 +73,8 @@ function Layout() {
         {/* <Route path="/users" element={<UsersPage />} /> */}
         ///////////////////////////////////////
         <Route element={<ProtectedRoute />}>
+          {/* ✅ JWT Protected Dashboard Page */}
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/centrallab" element={<CentrallabPage />} />
           <Route path="/project" element={<ProjecPage />} />
           <Route path="/result" element={<DownloadResults />} />
@@ -83,7 +87,6 @@ function Layout() {
           <Route path="/admin" element={<LabManagement />} />
           <Route path="/trf" element={<TestRequestForm />} />
           <Route path="/allreports" element={<AllReports />} />
-          
         </Route>
       </Routes>
       <Footer />

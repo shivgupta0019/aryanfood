@@ -1,39 +1,25 @@
-// import { Navigate, Outlet } from "react-router-dom";
-// import { jwtDecode } from "jwt-decode";
-
-// export default function ProtectedRoute() {
-//   const token = localStorage.getItem("token");
-
-//   if (!token) {
-//     return <Navigate to="/" replace />;
-//   }
-
-//   try {
-//     const decoded = jwtDecode(token);
-
-//     if (decoded.exp * 1000 < Date.now()) {
-//       localStorage.removeItem("token");
-//       return <Navigate to="/" replace />;
-//     }
-
-//     return <Outlet />; // 🔥 IMPORTANT
-//   } catch {
-//     localStorage.removeItem("token");
-//     return <Navigate to="/" replace />;
-//   }
-// }
-
-
-
-
-
 import { Navigate, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export default function ProtectedRoute() {
-  const token = localStorage.getItem("token");
+  const [isValid, setIsValid] = useState(null);
 
-  if (!token) {
-    return <Navigate to="/" />;
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setIsValid(false);
+      return;
+    }
+
+    // ✅ Token exists, route is protected
+    setIsValid(true);
+  }, []);
+
+  if (isValid === null) return null; // Loading state
+
+  if (isValid === false) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

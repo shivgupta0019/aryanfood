@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../../api/axiosConfig";
 import React, { useState, useEffect } from "react";
 
 const generateUniqueId = () =>
@@ -86,7 +86,7 @@ const TestRequestForm = () => {
   const handleGetAllTests = async () => {
     setLoadingTests(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/tests");
+      const response = await api.get("/tests");
       if (response.data && response.data.TESTING_FIELDS) {
         setAllTestingFields(response.data.TESTING_FIELDS);
       }
@@ -101,9 +101,7 @@ const TestRequestForm = () => {
   const handleGetAllCompany = async () => {
     setLoadingCompanies(true);
     try {
-      const response = await axios.get(
-        "http://localhost:5000/api/getCompanies",
-      );
+      const response = await api.get("/getCompanies");
       if (response.data && response.data.allCompanies) {
         setCompaniesData(response.data.allCompanies);
       }
@@ -117,7 +115,7 @@ const TestRequestForm = () => {
   const handleGetLab = async () => {
     setLoadingLabs(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/labs");
+      const response = await api.get("/labs");
       if (response.data && response.data.allLabs) {
         setAllLabs(response.data.allLabs);
       }
@@ -131,7 +129,7 @@ const TestRequestForm = () => {
   const handleGetProduct = async () => {
     setLoadingProducts(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/products");
+      const response = await api.get("/products");
       if (response.data && response.data.allProducts) {
         setAllProducts(response.data.allProducts);
       }
@@ -145,7 +143,7 @@ const TestRequestForm = () => {
   const fetchTrfList = async () => {
     setLoadingTrfList(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/trf");
+      const response = await api.get("/trf");
       setTrfList(response.data);
     } catch (error) {
       console.error("Error fetching TRF list:", error);
@@ -269,9 +267,7 @@ const TestRequestForm = () => {
   const loadRequestForEdit = async (trf) => {
     setLoadingEditId(trf.id);
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/trf/${trf.id}`,
-      );
+      const response = await api.get(`/trf/${trf.id}`);
       const data = response.data;
 
       setEditingId(trf.id);
@@ -338,9 +334,7 @@ const TestRequestForm = () => {
       return;
     setDeletingId(id);
     try {
-      const response = await axios.delete(
-        `http://localhost:5000/api/trf/${id}`,
-      );
+      const response = await api.delete(`/trf/${id}`);
       if (response.data.success) {
         alert("TRF deleted successfully");
         await fetchTrfList();
@@ -412,13 +406,10 @@ const TestRequestForm = () => {
     setSaving(true);
     try {
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/trf/${editingId}`, payload);
+        await api.put(`/trf/${editingId}`, payload);
         alert("TRF updated successfully!");
       } else {
-        const response = await axios.post(
-          "http://localhost:5000/api/trf",
-          payload,
-        );
+        const response = await api.post("/trf", payload);
         if (response.data.success) {
           alert(`TRF created: ${response.data.trfCode}`);
         }

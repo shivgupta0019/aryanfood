@@ -30,7 +30,7 @@ export default function UsersPage() {
       const newRole = user.role === "admin" ? "user" : "admin";
       await api.put(`/users/${user.id}/role`, { role: newRole });
       setUsers((prevUsers) =>
-        prevUsers.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))
+        prevUsers.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)),
       );
     } catch (err) {
       alert("Error updating role");
@@ -254,7 +254,6 @@ export default function UsersPage() {
       `}</style>
 
       <div className="users-container">
-
         {/* ===== HEADER ===== */}
         <div className="users-header">
           {loading ? (
@@ -291,7 +290,10 @@ export default function UsersPage() {
                 {/* email */}
                 <div className="skeleton skeleton-text-sm" />
                 {/* phone */}
-                <div className="skeleton skeleton-text-sm" style={{ width: "55%" }} />
+                <div
+                  className="skeleton skeleton-text-sm"
+                  style={{ width: "55%" }}
+                />
                 {/* role badge */}
                 <div className="skeleton skeleton-badge-pill" />
                 {/* action btn */}
@@ -312,7 +314,6 @@ export default function UsersPage() {
 
             {users.map((user, index) => (
               <div key={index} className="data-row">
-
                 <div className="data-cell name-cell">
                   <div className="name-box">
                     <div className="avatar">
@@ -322,13 +323,20 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                <div className="data-cell" data-label="Email">{user.email || user.EMAIL}</div>
-                <div className="data-cell" data-label="Phone">{user.phone || user.PHONE}</div>
+                <div className="data-cell" data-label="Email">
+                  {user.email || user.EMAIL}
+                </div>
+                <div className="data-cell" data-label="Phone">
+                  {user.phone || user.PHONE}
+                </div>
 
                 <div className="data-cell" data-label="Role">
                   <span
                     className="role-badge"
-                    style={{ backgroundColor: user.role === "admin" ? "#ff4d4f" : "#4CAF50" }}
+                    style={{
+                      backgroundColor:
+                        user.role === "admin" ? "#ff4d4f" : "#4CAF50",
+                    }}
                   >
                     {user.role === "admin" ? "Admin" : "User"}
                   </span>
@@ -339,19 +347,20 @@ export default function UsersPage() {
                     onClick={() => toggleRole(user)}
                     className="role-btn"
                     style={{
-                      border: user.role === "admin" ? "1px solid #eb161a" : "1px solid #4CAF50",
+                      border:
+                        user.role === "admin"
+                          ? "1px solid #eb161a"
+                          : "1px solid #4CAF50",
                       color: user.role === "admin" ? "#eb161a" : "#4CAF50",
                     }}
                   >
                     {user.role === "admin" ? "Remove Admin" : "Make Admin"}
                   </button>
                 </div>
-
               </div>
             ))}
           </div>
         )}
-
       </div>
     </>
   );
