@@ -97,7 +97,7 @@ export default function Dashboard() {
         }
 
         // ✅ API interceptor will automatically add Authorization header
-        const res = await api.get("/user");
+        const res = await api.get("/users");
 
         setProfile({
           name: res.data.name || res.data.full_name || "User",

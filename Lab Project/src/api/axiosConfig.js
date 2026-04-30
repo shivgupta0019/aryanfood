@@ -1,13 +1,17 @@
 import axios from "axios";
-
+const pro = "http://80.225.246.52:5000";
+const dev = "http://localhost:5000";
+let run = pro;
 const api = axios.create({
-  baseURL: "http://80.225.246.52:5137/api",
+  baseURL: `${run}/api`,
   // ✅ NO withCredentials - JWT tokens in localStorage only
 });
 
 // ✅ Request interceptor: Attach JWT token from localStorage
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+  console.log(token);
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

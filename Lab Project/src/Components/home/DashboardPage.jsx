@@ -21,7 +21,7 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         // Authorization header is automatically added by axios interceptor
-        const response = await api.get("/user");
+        const response = await api.get("/users");
         setUserData(response.data);
         setError("");
       } catch (err) {

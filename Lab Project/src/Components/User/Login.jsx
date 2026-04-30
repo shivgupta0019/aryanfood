@@ -40,7 +40,7 @@ export default function LoginPage() {
       else if (res.data.accessToken || res.data.token) {
         const token = res.data.accessToken || res.data.token;
         localStorage.setItem("token", token);
-        navigate("/dashboard"); // Redirect to dashboard
+        navigate("/centrallab"); // Redirect to dashboard
       }
     } catch (err) {
       const errorMessage =
