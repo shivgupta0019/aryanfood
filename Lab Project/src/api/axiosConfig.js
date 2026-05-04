@@ -1,7 +1,7 @@
 import axios from "axios";
 const pro = "http://80.225.246.52:5000";
 const dev = "http://localhost:5000";
-let run = pro;
+let run = dev;
 const api = axios.create({
   baseURL: `${run}/api`,
   // ✅ NO withCredentials - JWT tokens in localStorage only
