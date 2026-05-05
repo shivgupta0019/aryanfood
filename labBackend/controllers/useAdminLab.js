@@ -261,49 +261,6 @@ exports.deleteProduct = async (req, res) => {
     if (connection) await connection.close();
   }
 };
-exports.deleteProduct1 = async (req, res) => {
-  const productIdNum = parseInt(req.params.id, 10);
-
-  let connection;
-  try {
-    connection = await oracledb.getConnection(dbConfig);
-
-    const deleteSql = `DELETE FROM product WHERE id = :id`;
-    const result = await connection.execute(deleteSql, [productIdNum], {
-      autoCommit: true,
-    });
-
-    if (result.rowsAffected === 0) {
-      return res.status(404).json({ error: "Product not found." });
-    }
-
-    // Fetch all remaining products
-    const selectSql = `
-      SELECT *
-      FROM product
-      ORDER BY id DESC
-    `;
-    const allRows = await connection.execute(selectSql, [], {
-      outFormat: oracledb.OUT_FORMAT_OBJECT,
-    });
-
-    const allProducts = allRows.rows.map((row) => ({
-      id: row.ID,
-      productName: row.PRODUCT_NAME,
-      productId: row.PRODUCT_ID,
-      savedAt: row?.UPDATED_AT || row?.CREATED_AT || row?.savedAt,
-    }));
-
-    res
-      .status(200)
-      .json({ message: "Product deleted successfully", allProducts });
-  } catch (err) {
-    console.error("Error deleting product:", err);
-    res.status(500).json({ error: "Internal server error" });
-  } finally {
-    if (connection) await connection.close();
-  }
-};
 
 exports.getAllProducts = async (req, res) => {
   let connection;
@@ -313,43 +270,6 @@ exports.getAllProducts = async (req, res) => {
     res.status(200).json({ allProducts }); // status 200 is more appropriate
   } catch (err) {
     console.error("Error fetching products:", err);
-    res.status(500).json({ error: "Internal server error" });
-  } finally {
-    if (connection) await connection.close();
-  }
-};
-exports.getAllProducts1 = async (req, res) => {
-  let connection;
-  try {
-    connection = await oracledb.getConnection(dbConfig);
-
-    // Fetch all products (latest first)
-    const selectSql = `
-      SELECT *
-      FROM product
-      ORDER BY id DESC
-    `;
-    const allRows = await connection.execute(selectSql, [], {
-      outFormat: oracledb.OUT_FORMAT_OBJECT,
-    });
-
-    const allProducts = allRows.rows.map((row) => ({
-      id: row.ID,
-      productName: row.PRODUCT_NAME,
-      productId: row.PRODUCT_ID,
-      savedAt: row?.UPDATED_AT || row?.CREATED_AT || row?.savedAt,
-    }));
-
-    res.status(201).json({
-      message: "Product saved successfully",
-
-      allProducts,
-    });
-  } catch (err) {
-    console.error("Error saving product:", err);
-    if (err.errorNum === 1) {
-      return res.status(409).json({ error: "Product ID already exists." });
-    }
     res.status(500).json({ error: "Internal server error" });
   } finally {
     if (connection) await connection.close();
