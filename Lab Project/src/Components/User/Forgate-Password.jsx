@@ -8,7 +8,7 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  // 🔥 YE FUNCTION ADD KARNA THA
+
   async function handleSendLink(e) {
     e.preventDefault();
     setError("");
@@ -16,7 +16,7 @@ export default function ForgotPassword() {
     try {
       const res = await api.post("/forgot-password", { email });
 
-      alert(res.data.message); //  "Reset link sent"
+      alert(res.data.message); 
     } catch (err) {
       setError(err.response?.data?.message || "Something went wrong");
     }

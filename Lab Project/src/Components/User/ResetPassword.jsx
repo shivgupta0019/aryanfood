@@ -37,9 +37,9 @@ export default function ResetPassword() {
 
       alert(res.data.message);
 
-      navigate("/"); // 🔥 login page
+      navigate("/"); // e
     } catch (err) {
-      alert(err.response?.data?.message);
+      setError(err.response?.data?.message || "Failed to reset password");
     }
   }
   return (

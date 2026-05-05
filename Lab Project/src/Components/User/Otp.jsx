@@ -88,30 +88,20 @@ export default function OTPPage() {
     try {
       let res = await api.post(
         "/verify-otp",
-        {
-          email: localStorage.getItem("email"),
-          otp: otp.join(""),
-        },
-        {
-          withCredentials: true, // 🔥 VERY IMPORTANT
-        },
+          { email: localStorage.getItem("email"), otp: otp.join("") },
+        { withCredentials: true }
       );
-
-      // 🔥 TOKEN SAVE (already correct)
       console.log("res.data", res.data);
-
       localStorage.setItem("token", res.data.token);
-
-      // 🔥 ROLE DECODE
       const decoded = jwtDecode(res.data.token);
 
       alert(res.data.message);
 
       // 🔥 ROLE BASED REDIRECT
-      if (decoded.role === "admin") {
+    if (decoded.role === "admin" || decoded.role === "super_admin") {
         navigate("/admin");
       } else {
-        navigate("/centrallab"); // ya /lab
+        navigate("/admin");
       }
     } catch (err) {
       alert(err.response?.data?.message);
@@ -126,9 +116,7 @@ export default function OTPPage() {
       let res = await api.post("/resend-otp", {
         email: localStorage.getItem("email"),
       });
-
       alert(res.data.message);
-
       setTimeLeft(60);
       setResendActive(false);
       setOtp(["", "", "", "", "", ""]);
