@@ -1,40 +1,6 @@
-// const express = require("express");
-// const cors = require("cors");
-// const userRoutes = require("./routes/userRoutes");
-// const morgan = require("morgan");
-// const cookieParser = require("cookie-parser");
-// require("./config/db");
-
-// const pro = "http://80.225.246.52:5137/";
-// const dev = "http://localhost:5173";
-// const app = express();
-
-// //  CORS FIX
-// app.use(
-//   cors({
-//     origin: pro,
-//     methods: ["GET", "POST", "PUT", "DELETE"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//   }),
-// );
-
-// // Middlewares
-// app.use(express.json());
-// app.use(cookieParser());
-// app.use(morgan("dev"));
-
-// app.use("/uploads", express.static("uploads"));
-
-// // Routes
-// app.use("/api", userRoutes);
-
-// // Server
-// app.listen(5000, () => {
-//   console.log("🚀 Server running on port 5000");
-// });
-
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const userRoutes = require("./routes/userRoutes");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
@@ -58,7 +24,7 @@ app.use(
         callback(new Error("CORS not allowed"));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -69,7 +35,12 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
 
-app.use("/uploads", express.static("uploads"));
+// Serve static files from uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(
+  "/uploads/products",
+  express.static(path.join(__dirname, "uploads/products")),
+);
 
 // Routes
 app.use("/api", userRoutes);

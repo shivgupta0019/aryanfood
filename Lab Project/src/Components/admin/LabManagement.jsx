@@ -1,6 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import api from "../../api/axiosConfig";
-
+import { MdAddToPhotos } from "react-icons/md";
+import { MdOutlinePictureAsPdf } from "react-icons/md";
+import { IoCloseSharp } from "react-icons/io5";
+import { MdOutlineDeleteOutline } from "react-icons/md";
 const globalStyles = `
   * {
     margin: 0;
@@ -47,84 +50,6 @@ const globalStyles = `
   @keyframes lm-spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-  }
-
-  .lm-dropdown {
-    position: relative;
-    width: 100%;
-  }
-
-  .lm-dropdown-trigger {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    background: #fff;
-    cursor: pointer;
-    font-size: 14px;
-    text-align: left;
-  }
-
-  .lm-dropdown-trigger:focus {
-    outline: 2px solid #4f46e5;
-    outline-offset: 1px;
-  }
-
-  .lm-dropdown-value {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: #1e293b;
-  }
-
-  .lm-dropdown-arrow {
-    margin-left: 8px;
-    transition: transform 0.2s;
-    font-size: 12px;
-    color: #64748b;
-  }
-
-  .lm-dropdown-arrow.open {
-    transform: rotate(180deg);
-  }
-
-  .lm-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    z-index: 100;
-    max-height: 240px;
-    overflow-y: auto;
-  }
-
-  .lm-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #1e293b;
-  }
-
-  .lm-dropdown-item:hover {
-    background: #f8fafc;
-  }
-
-  .lm-dropdown-item input[type="checkbox"] {
-    accent-color: #000000;
-    width: 15px;
-    height: 15px;
-    cursor: pointer;
   }
 
   .lm-app {
@@ -483,7 +408,6 @@ const globalStyles = `
     margin-left: 0.5rem;
   }
 
-  /* Improved Table UI */
   .lm-table-wrapper {
     overflow-x: auto;
     border-radius: 16px;
@@ -574,6 +498,62 @@ const globalStyles = `
     cursor: not-allowed;
   }
 
+  /* Modal Styles */
+  .lm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .lm-modal {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 1250px;
+    height: 95%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 30px rgba(0,0,0,0.2);
+  }
+  .lm-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .lm-modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  .lm-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+  }
+  .lm-modal-close:hover {
+    color: #000;
+  }
+  .lm-modal-body {
+    flex: 1;
+    padding: 1rem;
+    overflow: auto;
+  }
+  .lm-iframe-pdf {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
   @media (max-width: 720px) {
     .lm-container {
       padding: 1.5rem;
@@ -634,7 +614,6 @@ function convertToIST(utcDateString) {
   return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} ${get("dayPeriod")}`;
 }
 
-// Loader component
 const CircularLoader = ({ size = "md", inline = false }) => {
   const sizeClass = size === "sm" ? "lm-loader-sm" : "";
   return (
@@ -661,7 +640,7 @@ export default function LabManagement() {
   const [editingCompanyData, setEditingCompanyData] = useState(null);
   const [companyFetchLoading, setCompanyFetchLoading] = useState(false);
   const [companySaveLoading, setCompanySaveLoading] = useState(false);
-  const [companyDeleteLoading, setCompanyDeleteLoading] = useState(null); // store id being deleted
+  const [companyDeleteLoading, setCompanyDeleteLoading] = useState(null);
   const [companyEditSaveLoading, setCompanyEditSaveLoading] = useState(false);
 
   // ---------- Lab State ----------
@@ -681,12 +660,18 @@ export default function LabManagement() {
   const [labDeleteLoading, setLabDeleteLoading] = useState(null);
   const [labEditSaveLoading, setLabEditSaveLoading] = useState(false);
 
-  // ---------- Product State ----------
+  // ---------- Product State (with PDF) ----------
   const [productData, setProductData] = useState({ productName: "" });
   const [savedProducts, setSavedProducts] = useState([]);
   const [productFetchLoading, setProductFetchLoading] = useState(false);
   const [productSaveLoading, setProductSaveLoading] = useState(false);
   const [productDeleteLoading, setProductDeleteLoading] = useState(null);
+  const [pdfUploadLoading, setPdfUploadLoading] = useState(null);
+  const [pdfDeleteLoading, setPdfDeleteLoading] = useState(null);
+  // PDF Modal
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [currentPdfUrl, setCurrentPdfUrl] = useState("");
+  const [currentPdfName, setCurrentPdfName] = useState("");
 
   // ---------- Testing State ----------
   const [availableTests, setAvailableTests] = useState([]);
@@ -702,36 +687,21 @@ export default function LabManagement() {
   const [testFetchLoading, setTestFetchLoading] = useState(false);
   const [testCreateLoading, setTestCreateLoading] = useState(false);
 
-  // Helper to refresh tests from API
-  const fetchAllTests = async () => {
-    setTestFetchLoading(true);
-    try {
-      const response = await api.get("/tests");
-      if (response.data && response.data.TESTING_FIELDS) {
-        setAllTestingFilds(response.data.TESTING_FIELDS);
-      }
-    } catch (error) {
-      console.error("Error fetching tests:", error);
-      alert("Failed to load tests.");
-    } finally {
-      setTestFetchLoading(false);
-    }
+  // Helper to get full PDF URL without /api prefix
+  const getPdfFullUrl = (relativePath) => {
+    if (!relativePath) return null;
+    if (relativePath.startsWith("http")) return relativePath;
+    // Extract backend origin from axios baseURL (e.g., http://localhost:5000/api -> http://localhost:5000)
+    const backendBase =
+      api.defaults.baseURL?.replace(/\/api$/, "") || "http://localhost:5000";
+    const cleanBase = backendBase.replace(/\/$/, "");
+    const path = relativePath.startsWith("/")
+      ? relativePath
+      : `/${relativePath}`;
+    return `${cleanBase}${path}`;
   };
 
-  useEffect(() => {
-    if (Object.keys(allTestingFilds).length > 0) {
-      const tests = Object.keys(allTestingFilds).map((key) => ({
-        id: key,
-        label: key,
-        fields: allTestingFilds[key],
-      }));
-      setAvailableTests(tests);
-    } else {
-      setAvailableTests([]);
-    }
-  }, [allTestingFilds]);
-
-  // ---------- Company API Calls with individual loaders ----------
+  // ---------- Company API Calls ----------
   const handleGetAllCompany = async () => {
     setCompanyFetchLoading(true);
     try {
@@ -830,7 +800,7 @@ export default function LabManagement() {
     }
   };
 
-  // ---------- Lab API Calls with individual loaders ----------
+  // ---------- Lab API Calls ----------
   const handleGetLab = async () => {
     setLabFetchLoading(true);
     try {
@@ -934,7 +904,7 @@ export default function LabManagement() {
     }
   };
 
-  // ---------- Product API Calls with individual loaders ----------
+  // ---------- Product API Calls with PDF support ----------
   const handleGetProduct = async () => {
     setProductFetchLoading(true);
     try {
@@ -965,8 +935,8 @@ export default function LabManagement() {
       if (response.data && response.data.allProducts) {
         setSavedProducts(response.data.allProducts);
         alert("Product saved successfully!");
+        setProductData({ productName: "" });
       }
-      setProductData({ productName: "" });
     } catch (error) {
       console.error("Error saving product:", error);
       alert(error.response?.data?.error || "Failed to save product.");
@@ -975,8 +945,47 @@ export default function LabManagement() {
     }
   };
 
+  const addPdfToProduct = async (productId, file) => {
+    if (!file) return;
+    setPdfUploadLoading(productId);
+    try {
+      const formData = new FormData();
+      formData.append("pdfFile", file);
+      const response = await api.put(`/products/${productId}/pdf`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (response.data && response.data.allProducts) {
+        setSavedProducts(response.data.allProducts);
+        alert("PDF added successfully!");
+      }
+    } catch (error) {
+      console.error("Error adding PDF:", error);
+      alert(error.response?.data?.error || "Failed to add PDF.");
+    } finally {
+      setPdfUploadLoading(null);
+    }
+  };
+
+  const deletePdfFromProduct = async (productId) => {
+    if (!window.confirm("Remove PDF from this product?")) return;
+    setPdfDeleteLoading(productId);
+    try {
+      const response = await api.delete(`/products/${productId}/pdf`);
+      if (response.data && response.data.allProducts) {
+        setSavedProducts(response.data.allProducts);
+        alert("PDF removed successfully!");
+      }
+    } catch (error) {
+      console.error("Error deleting PDF:", error);
+      alert(error.response?.data?.error || "Failed to delete PDF.");
+    } finally {
+      setPdfDeleteLoading(null);
+    }
+  };
+
   const deleteProduct = async (id) => {
-    if (!window.confirm("Delete this product?")) return;
+    if (!window.confirm("Delete this product? This will also delete its PDF."))
+      return;
     setProductDeleteLoading(id);
     try {
       const response = await api.delete(`/products/${id}`);
@@ -992,7 +1001,35 @@ export default function LabManagement() {
     }
   };
 
-  // ---------- Testing Functions with individual loaders ----------
+  // ---------- Testing API ----------
+  const fetchAllTests = async () => {
+    setTestFetchLoading(true);
+    try {
+      const response = await api.get("/tests");
+      if (response.data && response.data.TESTING_FIELDS) {
+        setAllTestingFilds(response.data.TESTING_FIELDS);
+      }
+    } catch (error) {
+      console.error("Error fetching tests:", error);
+      alert("Failed to load tests.");
+    } finally {
+      setTestFetchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (Object.keys(allTestingFilds).length > 0) {
+      const tests = Object.keys(allTestingFilds).map((key) => ({
+        id: key,
+        label: key,
+        fields: allTestingFilds[key],
+      }));
+      setAvailableTests(tests);
+    } else {
+      setAvailableTests([]);
+    }
+  }, [allTestingFilds]);
+
   const handleToggleTest = (testId) => {
     setSelectedTestIds((prev) =>
       prev.includes(testId)
@@ -1055,15 +1092,9 @@ export default function LabManagement() {
           placeholder: f.placeholder || "",
         })),
       };
-      const res = await api.post("/create-test", payload, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = res.data;
-      if (!res.ok) {
-        alert(data.error || "Failed to create test");
+      const res = await api.post("/create-test", payload);
+      if (res.status !== 200 && res.status !== 201) {
+        alert(res.data?.error || "Failed to create test");
         return;
       }
       await fetchAllTests();
@@ -1134,7 +1165,7 @@ export default function LabManagement() {
     cancelEditTest();
   };
 
-  const deleteTest = (id) => {
+  const deleteTestEntry = (id) => {
     if (window.confirm("Delete this test configuration?"))
       setSavedTests((prev) => prev.filter((t) => t.id !== id));
   };
@@ -1153,7 +1184,6 @@ export default function LabManagement() {
     fetchAllTests();
   }, []);
 
-  // Helper to render centered loader in table body
   const renderTableLoader = () => (
     <tr>
       <td colSpan={10} className="lm-loader-container">
@@ -1161,6 +1191,21 @@ export default function LabManagement() {
       </td>
     </tr>
   );
+
+  const openPdfModal = (pdfPath, productName) => {
+    const fullUrl = getPdfFullUrl(pdfPath);
+    console.log("fullUrl", fullUrl);
+
+    setCurrentPdfUrl(fullUrl);
+    setCurrentPdfName(productName || "PDF Document");
+    setPdfModalOpen(true);
+  };
+
+  const closePdfModal = () => {
+    setPdfModalOpen(false);
+    setCurrentPdfUrl("");
+    setCurrentPdfName("");
+  };
 
   return (
     <>
@@ -1733,11 +1778,11 @@ export default function LabManagement() {
             </div>
           )}
 
-          {/* PRODUCT TAB */}
+          {/* PRODUCT TAB with PDF modal */}
           {activeTab === "product" && (
             <div className="lm-panel">
               <div className="lm-form-grid">
-                <div className="lm-field">
+                <div className="lm-field lm-full-width">
                   <label className="lm-label">Product Name</label>
                   <input
                     className="lm-input"
@@ -1745,6 +1790,7 @@ export default function LabManagement() {
                     onChange={(e) =>
                       setProductData({ productName: e.target.value })
                     }
+                    placeholder="Enter product name"
                   />
                 </div>
               </div>
@@ -1771,6 +1817,7 @@ export default function LabManagement() {
                     <tr>
                       <th>Product Name</th>
                       <th>Product ID</th>
+                      <th>PDF Document</th>
                       <th>Saved At</th>
                       <th>Actions</th>
                     </tr>
@@ -1782,12 +1829,77 @@ export default function LabManagement() {
                           <tr key={prod.id}>
                             <td>{prod.productName}</td>
                             <td>{prod.productId}</td>
+                            <td>
+                              {prod.pdf_path ? (
+                                <div className="lm-action-buttons">
+                                  <button
+                                    className="lm-icon-btn"
+                                    onClick={() =>
+                                      openPdfModal(
+                                        prod.pdf_path,
+                                        prod.productName,
+                                      )
+                                    }
+                                  >
+                                    <MdOutlinePictureAsPdf size={25} />
+                                  </button>
+                                  <button
+                                    className="lm-icon-btn"
+                                    onClick={() =>
+                                      deletePdfFromProduct(prod.id)
+                                    }
+                                    disabled={pdfDeleteLoading === prod.id}
+                                    style={{ color: "#dc2626" }}
+                                  >
+                                    {pdfDeleteLoading === prod.id ? (
+                                      <CircularLoader
+                                        size="sm"
+                                        inline
+                                        size={25}
+                                      />
+                                    ) : (
+                                      <MdOutlineDeleteOutline size={25} />
+                                    )}
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  className="lm-icon-btn"
+                                  onClick={() => {
+                                    const input =
+                                      document.createElement("input");
+                                    input.type = "file";
+                                    input.accept = "application/pdf";
+                                    input.onchange = (e) => {
+                                      if (e.target.files[0])
+                                        addPdfToProduct(
+                                          prod.id,
+                                          e.target.files[0],
+                                        );
+                                    };
+                                    input.click();
+                                  }}
+                                  disabled={pdfUploadLoading === prod.id}
+                                >
+                                  {pdfUploadLoading === prod.id ? (
+                                    <CircularLoader
+                                      size="sm"
+                                      inline
+                                      size={25}
+                                    />
+                                  ) : (
+                                    <MdAddToPhotos size={25} />
+                                  )}
+                                </button>
+                              )}
+                            </td>
                             <td>{convertToIST(prod.savedAt)}</td>
                             <td className="lm-action-buttons">
                               <button
                                 className="lm-icon-btn"
                                 onClick={() => deleteProduct(prod.id)}
                                 disabled={productDeleteLoading === prod.id}
+                                style={{ color: "#dc2626" }}
                               >
                                 {productDeleteLoading === prod.id ? (
                                   <CircularLoader size="sm" inline />
@@ -2058,7 +2170,7 @@ export default function LabManagement() {
                                 </button>
                                 <button
                                   className="lm-icon-btn"
-                                  onClick={() => deleteTest(entry.id)}
+                                  onClick={() => deleteTestEntry(entry.id)}
                                 >
                                   🗑️
                                 </button>
@@ -2075,6 +2187,28 @@ export default function LabManagement() {
           )}
         </div>
       </div>
+
+      {/* PDF Modal */}
+      {pdfModalOpen && (
+        <div className="lm-modal-overlay" onClick={closePdfModal}>
+          <div className="lm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="lm-modal-header">
+              <h3>{currentPdfName}</h3>
+              <button className="lm-modal-close" onClick={closePdfModal}>
+                <IoCloseSharp size={25} />
+              </button>
+            </div>
+            <div className="lm-modal-body">
+              <iframe
+                className="lm-iframe-pdf"
+                src={currentPdfUrl}
+                title="PDF Viewer"
+                frameBorder="0"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
