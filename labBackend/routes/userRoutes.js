@@ -33,11 +33,13 @@ const {
   getAllLabs,
   updateLab,
   deleteLab,
-  allProducts,
+  createProducts,
   deleteProduct,
   getAllProducts,
   getAllTest,
   createTest,
+  addPdfToProduct,
+  deletePdfFromProduct,
 } = require("../controllers/useAdminLab");
 const {
   getProfile,
@@ -78,9 +80,12 @@ router.post("/labs", allLabs);
 router.get("/labs", getAllLabs);
 router.put("/labs/:id", updateLab);
 router.delete("/labs/:id", deleteLab);
-router.post("/products", allProducts);
+router.post("/products", createProducts);
 router.get("/products", getAllProducts);
 router.delete("/products/:id", deleteProduct);
+// PDF routes
+router.put("/products/:id/pdf", upload.single("pdfFile"), addPdfToProduct);
+router.delete("/products/:id/pdf", deletePdfFromProduct);
 router.get("/tests", getAllTest);
 router.post("/create-test", createTest);
 
