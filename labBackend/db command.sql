@@ -133,7 +133,7 @@ CREATE TABLE
         -- Card 5: Remark
         remark VARCHAR2 (1000),
         -- Status tracking
-        status VARCHAR2 (20) DEFAULT 'not_filled' CHECK (status IN ('not_filled', 'filled')),
+        status VARCHAR2 (20) DEFAULT 'not_filled' CHECK (status IN ('not_filled', 'filled', 'submitted')),
         created_by VARCHAR2 (100), -- admin ka naam/id
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP,

@@ -22,6 +22,9 @@ const {
   getTrfForUserFill,
   fillTrfValues,
   getFilledTrfs,
+  submitTrf,
+  getPendingTrfs,
+  getSubmittedTrfs,
 } = require("../controllers/useTrf");
 
 const {
@@ -93,12 +96,15 @@ router.post("/create-test", createTest);
 router.post("/trf", adminTrf);
 router.get("/trf", allTrf);
 router.get("/trf/filled", getFilledTrfs);
+router.get("/trf/pending", getPendingTrfs);
+router.get("/trf/submitted", getSubmittedTrfs);
 
-// ⚠️ Yeh line PEHLE honi chahiye
+// ⚠️ Specific routes BEFORE parameterized routes
 router.get("/trf/user/:id", getTrfForUserFill);
 router.patch("/trf/:id/fill", fillTrfValues);
+router.post("/trf/:id/submit", submitTrf);
 
-// Yeh lines BAAD MEIN
+// Parameterized routes LAST
 router.get("/trf/:id", getTrfById);
 router.put("/trf/:id", updateTrf);
 router.delete("/trf/:id", deleteTrf);

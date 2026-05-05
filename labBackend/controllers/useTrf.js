@@ -270,6 +270,97 @@ exports.updateTrf = async (req, res) => {
       .status(400)
       .json({ error: "Missing required fields or no tests selected" });
   }
+
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+
+    // ✅ No status check – allow updates regardless of status
+    const existing = await connection.execute(
+      `SELECT company_id, lab_id, product_id FROM trf_requests WHERE id = :id`,
+      { id: trfId },
+    );
+    if (existing.rows.length === 0)
+      return res.status(404).json({ error: "TRF not found" });
+    const [companyId, labId, productId] = existing.rows[0];
+
+    // Update main table (status remains whatever it is – 'submitted' stays 'submitted')
+    await connection.execute(
+      `UPDATE trf_requests 
+       SET company_id = :companyId, request_name = :requestName, lab_id = :labId,
+           product_id = :productId, lot_no = :lotNo, remark = :remark,
+           created_by = :createdBy, updated_at = CURRENT_TIMESTAMP
+       WHERE id = :trfId`,
+      {
+        companyId,
+        requestName,
+        labId,
+        productId,
+        lotNo: lotNo || null,
+        remark: remark || null,
+        createdBy: createdBy || "admin@example.com",
+        trfId,
+      },
+    );
+
+    // Delete children and re-insert (same as before)
+    await connection.execute(
+      `DELETE FROM trf_test_fields WHERE trf_selected_id IN (SELECT id FROM trf_selected_tests WHERE trf_id = :trfId)`,
+      { trfId },
+    );
+    await connection.execute(
+      `DELETE FROM trf_selected_tests WHERE trf_id = :trfId`,
+      { trfId },
+    );
+
+    for (const test of selectedTests) {
+      const stResult = await connection.execute(
+        `INSERT INTO trf_selected_tests (trf_id, test_id) VALUES (:trfId, :testId) RETURNING id INTO :selectedId`,
+        {
+          trfId,
+          testId: test.testId,
+          selectedId: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+        },
+      );
+      const selectedTestId = stResult.outBinds.selectedId[0];
+      for (let i = 0; i < test.fields.length; i++) {
+        const f = test.fields[i];
+        await connection.execute(
+          `INSERT INTO trf_test_fields 
+           (trf_selected_id, field_id, custom_label, placeholder, is_predefined, sort_order, field_value)
+           VALUES (:selectedId, :fieldId, :customLabel, :placeholder, :isPredefined, :sortOrder, :fieldValue)`,
+          {
+            selectedId: selectedTestId,
+            fieldId: f.isPredefined ? f.fieldId : null,
+            customLabel: f.customLabel,
+            placeholder: f.placeholder,
+            isPredefined: f.isPredefined ? 1 : 0,
+            sortOrder: i,
+            fieldValue: f.fieldValue !== undefined ? f.fieldValue : null,
+          },
+        );
+      }
+    }
+
+    await connection.commit();
+    res.json({ success: true, message: "TRF updated successfully" });
+  } catch (err) {
+    if (connection) await connection.rollback();
+    console.error("Update error:", err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+};
+exports.updateTrf1 = async (req, res) => {
+  const trfId = parseInt(req.params.id, 10);
+  const { requestName, lotNo, remark, createdBy, selectedTests } = req.body;
+
+  if (!requestName || !selectedTests || !selectedTests.length) {
+    return res
+      .status(400)
+      .json({ error: "Missing required fields or no tests selected" });
+  }
   // validate testId presence
   for (let i = 0; i < selectedTests.length; i++) {
     if (!selectedTests[i].testId) {
@@ -282,6 +373,19 @@ exports.updateTrf = async (req, res) => {
   let connection;
   try {
     connection = await oracledb.getConnection(dbConfig);
+
+    // 🔒 Check status - reject if submitted
+    const statusCheck = await connection.execute(
+      `SELECT status FROM trf_requests WHERE id = :id`,
+      { id: trfId },
+    );
+    if (statusCheck.rows.length === 0)
+      return res.status(404).json({ error: "TRF not found" });
+    if (statusCheck.rows[0][0] === "submitted")
+      return res
+        .status(403)
+        .json({ error: "Submitted TRF cannot be modified" });
+
     const existing = await connection.execute(
       `SELECT company_id, lab_id, product_id FROM trf_requests WHERE id = :id`,
       { id: trfId },
@@ -524,6 +628,18 @@ exports.fillTrfValues = async (req, res) => {
   try {
     connection = await oracledb.getConnection(dbConfig);
 
+    // 🔒 Check status - reject if submitted
+    const statusCheck = await connection.execute(
+      `SELECT status FROM trf_requests WHERE id = :id`,
+      { id: trfId },
+    );
+    if (statusCheck.rows.length === 0)
+      return res.status(404).json({ error: "TRF not found" });
+    if (statusCheck.rows[0][0] === "submitted")
+      return res
+        .status(403)
+        .json({ error: "Submitted TRF cannot be modified" });
+
     // ✅ BEGIN hata do - Oracle auto transaction start karta hai
 
     for (const item of fields) {
@@ -585,8 +701,49 @@ exports.fillTrfValues = async (req, res) => {
   }
 };
 
-// ========== 8. GET ONLY FILLED TRFs (for reports) ==========
+// ========== 8. OLD: getFilledTrfs (no longer needed, keep for backward compatibility) ==========
 exports.getFilledTrfs = async (req, res) => {
+  // redirect to getSubmittedTrfs for reports
+  return exports.getSubmittedTrfs(req, res);
+};
+
+// ========== 9. NEW: SUBMIT TRF ==========
+exports.submitTrf = async (req, res) => {
+  const trfId = parseInt(req.params.id, 10);
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+    const checkResult = await connection.execute(
+      `SELECT status FROM trf_requests WHERE id = :id`,
+      { id: trfId },
+    );
+    if (checkResult.rows.length === 0)
+      return res.status(404).json({ error: "TRF not found" });
+    const currentStatus = checkResult.rows[0][0];
+    if (currentStatus !== "filled")
+      return res
+        .status(400)
+        .json({ error: "Only filled TRFs can be submitted" });
+
+    await connection.execute(
+      `UPDATE trf_requests 
+       SET status = 'submitted', submitted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = :id`,
+      { id: trfId },
+    );
+    await connection.commit();
+    res.json({ success: true, message: "TRF submitted successfully" });
+  } catch (err) {
+    if (connection) await connection.rollback();
+    console.error("Submit error:", err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+};
+
+// ========== 10. NEW: GET PENDING TRFs (not_filled + filled) ==========
+exports.getPendingTrfs = async (req, res) => {
   let connection;
   try {
     connection = await oracledb.getConnection(dbConfig);
@@ -601,13 +758,15 @@ exports.getFilledTrfs = async (req, res) => {
        JOIN company c ON c.id = tr.company_id
        JOIN product p ON p.id = tr.product_id
        JOIN lab l ON l.id = tr.lab_id
-       WHERE tr.status = 'filled'
+       WHERE tr.status IN ('not_filled', 'filled')
        ORDER BY tr.created_at DESC`,
     );
     const trfList = [];
     for (const row of trfRows.rows) {
-      const trfId = row[0];
-      // Fetch test names (for quick display)
+      const trfId = parseInt(row[0], 10);
+      if (isNaN(trfId)) continue; // Skip if trfId is invalid
+
+      // Fetch test names
       const testNamesResult = await connection.execute(
         `SELECT DISTINCT ts.test_name
          FROM trf_selected_tests st
@@ -617,11 +776,17 @@ exports.getFilledTrfs = async (req, res) => {
         { trfId },
       );
       const testNames = testNamesResult.rows.map((r) => r[0]);
-      // Fetch fields (label is stored in custom_label)
+      // Fetch fields
       const fieldsResult = await connection.execute(
-        `SELECT st.test_id, tf.custom_label, tf.placeholder, tf.is_predefined, tf.field_id
+        `SELECT st.test_id, 
+                tf.custom_label,
+                tf.placeholder,
+                tf.is_predefined,
+                tf.field_id,
+                tfl.label AS predefined_label
          FROM trf_selected_tests st
          JOIN trf_test_fields tf ON tf.trf_selected_id = st.id
+         LEFT JOIN test_fields tfl ON tfl.id = tf.field_id
          WHERE st.trf_id = :trfId
          ORDER BY st.id, tf.sort_order`,
         { trfId },
@@ -629,10 +794,17 @@ exports.getFilledTrfs = async (req, res) => {
       const testMap = new Map();
       for (const f of fieldsResult.rows) {
         const testId = f[0];
-        const label = f[1];
+        const customLabel = f[1];
         const placeholder = f[2];
         const isPredefined = f[3] === 1;
         const fieldId = f[4];
+        const predefinedLabel = f[5];
+        let label = null;
+        if (isPredefined) {
+          label = customLabel || predefinedLabel || null;
+        } else {
+          label = customLabel;
+        }
         if (!testMap.has(testId)) testMap.set(testId, { testId, fields: [] });
         testMap.get(testId).fields.push({
           customLabel: null,
@@ -663,7 +835,108 @@ exports.getFilledTrfs = async (req, res) => {
     }
     res.json(trfList);
   } catch (err) {
-    console.error("Error fetching filled TRFs:", err);
+    console.error("Error fetching pending TRFs:", err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+};
+
+// ========== 11. NEW: GET SUBMITTED TRFs (only submitted) ==========
+exports.getSubmittedTrfs = async (req, res) => {
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+    const trfRows = await connection.execute(
+      `SELECT 
+         tr.id, tr.trf_code, tr.request_name, tr.lot_no, tr.remark,
+         tr.status, tr.created_at, tr.updated_at, tr.submitted_at,
+         c.company_name,
+         p.product_name, p.product_id AS sample_code,
+         l.lab_name, l.lab_code, l.lab_type
+       FROM trf_requests tr
+       JOIN company c ON c.id = tr.company_id
+       JOIN product p ON p.id = tr.product_id
+       JOIN lab l ON l.id = tr.lab_id
+       WHERE tr.status = 'submitted'
+       ORDER BY tr.created_at DESC`,
+    );
+    const trfList = [];
+    for (const row of trfRows.rows) {
+      const trfId = parseInt(row[0], 10);
+      if (isNaN(trfId)) continue; // Skip if trfId is invalid
+
+      // Fetch test names
+      const testNamesResult = await connection.execute(
+        `SELECT DISTINCT ts.test_name
+         FROM trf_selected_tests st
+         JOIN tests ts ON ts.id = st.test_id
+         WHERE st.trf_id = :trfId
+         ORDER BY ts.test_name`,
+        { trfId },
+      );
+      const testNames = testNamesResult.rows.map((r) => r[0]);
+      // Fetch fields
+      const fieldsResult = await connection.execute(
+        `SELECT st.test_id, 
+                tf.custom_label,
+                tf.placeholder,
+                tf.is_predefined,
+                tf.field_id,
+                tfl.label AS predefined_label
+         FROM trf_selected_tests st
+         JOIN trf_test_fields tf ON tf.trf_selected_id = st.id
+         LEFT JOIN test_fields tfl ON tfl.id = tf.field_id
+         WHERE st.trf_id = :trfId
+         ORDER BY st.id, tf.sort_order`,
+        { trfId },
+      );
+      const testMap = new Map();
+      for (const f of fieldsResult.rows) {
+        const testId = f[0];
+        const customLabel = f[1];
+        const placeholder = f[2];
+        const isPredefined = f[3] === 1;
+        const fieldId = f[4];
+        const predefinedLabel = f[5];
+        let label = null;
+        if (isPredefined) {
+          label = customLabel || predefinedLabel || null;
+        } else {
+          label = customLabel;
+        }
+        if (!testMap.has(testId)) testMap.set(testId, { testId, fields: [] });
+        testMap.get(testId).fields.push({
+          customLabel: null,
+          placeholder,
+          isPredefined,
+          fieldId: isPredefined ? fieldId : null,
+          label,
+        });
+      }
+      trfList.push({
+        id: trfId,
+        trfCode: row[1],
+        requestName: row[2],
+        lotNo: row[3],
+        remark: row[4],
+        status: row[5],
+        createdAt: row[6],
+        updatedAt: row[7],
+        submittedAt: row[8],
+        companyName: row[9],
+        productName: row[10],
+        sampleCode: row[11],
+        labName: row[12],
+        labCode: row[13],
+        labType: row[14],
+        testNames,
+        selectedTests: Array.from(testMap.values()),
+      });
+    }
+    res.json(trfList);
+  } catch (err) {
+    console.error("Error fetching submitted TRFs:", err);
     res.status(500).json({ error: err.message });
   } finally {
     if (connection) await connection.close();
