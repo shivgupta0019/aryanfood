@@ -1,12 +1,30 @@
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useMemo } from "react";
 import api from "../../api/axiosConfig";
+import { jwtDecode } from "jwt-decode";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchUsers();
+  }, []);
+
+  // Decode token to get current user info
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setCurrentUser(decoded);
+      } catch (err) {
+        console.log("Invalid token");
+      }
+    }
   }, []);
 
   async function fetchUsers() {
@@ -14,11 +32,12 @@ export default function UsersPage() {
     try {
       let res = await api.get("/users");
       setUsers(res.data);
+      console.log(res.data);
     } catch (err) {
       console.log(err.response?.data);
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem("token");
-        window.location.href = "/";
+        // window.location.href = "/";
       }
     } finally {
       setLoading(false);
@@ -30,12 +49,29 @@ export default function UsersPage() {
       const newRole = user.role === "admin" ? "user" : "admin";
       await api.put(`/users/${user.id}/role`, { role: newRole });
       setUsers((prevUsers) =>
-        prevUsers.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)),
+        prevUsers.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))
       );
     } catch (err) {
       alert("Error updating role");
     }
   }
+
+  const isSuperAdmin = currentUser?.role === "super_admin";
+  // Define grid columns based on role (action column only for super_admin)
+  const gridColumns = isSuperAdmin
+    ? "1.5fr 2fr 1.5fr 1fr 1.5fr"
+    : "1.5fr 2fr 1.5fr 1fr";
+
+  // Filter users based on search term (name or email)
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return users;
+    const lowerSearch = searchTerm.toLowerCase();
+    return users.filter(
+      (user) =>
+        (user.name || user.NAME || "").toLowerCase().includes(lowerSearch) ||
+        (user.email || user.EMAIL || "").toLowerCase().includes(lowerSearch)
+    );
+  }, [users, searchTerm]);
 
   return (
     <>
@@ -62,6 +98,19 @@ export default function UsersPage() {
           font-size: 14px;
           white-space: nowrap;
         }
+        .search-box {
+          padding: 6px 12px;
+          border-radius: 20px;
+          border: 1px solid #ccc;
+          font-size: 14px;
+          width: 220px;
+          outline: none;
+          transition: 0.2s;
+        }
+        .search-box:focus {
+          border-color: #4CAF50;
+          box-shadow: 0 0 0 2px rgba(76,175,80,0.2);
+        }
         .table-container {
           display: flex;
           flex-direction: column;
@@ -69,7 +118,6 @@ export default function UsersPage() {
         }
         .header-row {
           display: grid;
-          grid-template-columns: 1.5fr 2fr 1.5fr 1fr 1.5fr;
           padding: 12px;
           background: white;
           color: black;
@@ -78,7 +126,6 @@ export default function UsersPage() {
         .header-cell { font-weight: 600; }
         .data-row {
           display: grid;
-          grid-template-columns: 1.5fr 2fr 1.5fr 1fr 1.5fr;
           padding: 15px;
           background: #fff;
           border-radius: 10px;
@@ -123,6 +170,14 @@ export default function UsersPage() {
           transition: 0.3s;
           white-space: nowrap;
         }
+        .no-results {
+          text-align: center;
+          padding: 40px;
+          background: white;
+          border-radius: 12px;
+          color: #666;
+          font-size: 16px;
+        }
 
         /* ===== SKELETON LOADER ===== */
         @keyframes shimmer {
@@ -150,11 +205,10 @@ export default function UsersPage() {
         }
 
         .skeleton-table-header {
+          display: grid;
           padding: 12px;
           background: white;
           border-radius: 8px;
-          display: grid;
-          grid-template-columns: 1.5fr 2fr 1.5fr 1fr 1.5fr;
           gap: 12px;
         }
 
@@ -165,12 +219,11 @@ export default function UsersPage() {
 
         .skeleton-row {
           display: grid;
-          grid-template-columns: 1.5fr 2fr 1.5fr 1fr 1.5fr;
-          gap: 12px;
           padding: 15px;
           background: #fff;
           border-radius: 10px;
           align-items: center;
+          gap: 12px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
@@ -245,6 +298,7 @@ export default function UsersPage() {
           .skeleton-text-sm { width: 100%; }
           .skeleton-badge-pill { width: 70px; }
           .skeleton-btn { width: 120px; }
+          .search-box { width: 100%; }
         }
 
         @media (max-width: 480px) {
@@ -264,7 +318,18 @@ export default function UsersPage() {
           ) : (
             <>
               <h2 style={{ margin: 0 }}>👥 Users Management</h2>
-              <span className="count-badge">Total Users: {users.length}</span>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  className="search-box"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <span className="count-badge">
+                  Total: {filteredUsers.length} / {users.length}
+                </span>
+              </div>
             </>
           )}
         </div>
@@ -273,92 +338,141 @@ export default function UsersPage() {
         {loading ? (
           <div className="table-container">
             {/* skeleton header */}
-            <div className="skeleton-table-header">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="skeleton skeleton-th" />
-              ))}
+            <div
+              className="skeleton-table-header"
+              style={{ gridTemplateColumns: gridColumns }}
+            >
+              {Array(isSuperAdmin ? 5 : 4)
+                .fill()
+                .map((_, i) => (
+                  <div key={i} className="skeleton skeleton-th" />
+                ))}
             </div>
 
             {/* skeleton rows */}
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="skeleton-row">
-                {/* name */}
-                <div className="skeleton-name-box">
-                  <div className="skeleton skeleton-avatar" />
-                  <div className="skeleton skeleton-text" />
-                </div>
-                {/* email */}
-                <div className="skeleton skeleton-text-sm" />
-                {/* phone */}
+            {Array(6)
+              .fill()
+              .map((_, i) => (
                 <div
-                  className="skeleton skeleton-text-sm"
-                  style={{ width: "55%" }}
-                />
-                {/* role badge */}
-                <div className="skeleton skeleton-badge-pill" />
-                {/* action btn */}
-                <div className="skeleton skeleton-btn" />
-              </div>
-            ))}
+                  key={i}
+                  className="skeleton-row"
+                  style={{ gridTemplateColumns: gridColumns }}
+                >
+                  {/* name */}
+                  <div className="skeleton-name-box">
+                    <div className="skeleton skeleton-avatar" />
+                    <div className="skeleton skeleton-text" />
+                  </div>
+                  {/* email */}
+                  <div className="skeleton skeleton-text-sm" />
+                  {/* phone */}
+                  <div
+                    className="skeleton skeleton-text-sm"
+                    style={{ width: "55%" }}
+                  />
+                  {/* role badge */}
+                  <div className="skeleton skeleton-badge-pill" />
+                  {/* action button - only for super_admin */}
+                  {isSuperAdmin && <div className="skeleton skeleton-btn" />}
+                </div>
+              ))}
           </div>
         ) : (
           /* ===== DATA STATE ===== */
           <div className="table-container">
-            <div className="header-row">
+            <div
+              className="header-row"
+              style={{ gridTemplateColumns: gridColumns }}
+            >
               <span className="header-cell">Name</span>
               <span className="header-cell">Email</span>
               <span className="header-cell">Phone</span>
               <span className="header-cell">Role</span>
-              <span className="header-cell">Action</span>
+              {isSuperAdmin && <span className="header-cell">Action</span>}
             </div>
 
-            {users.map((user, index) => (
-              <div key={index} className="data-row">
-                <div className="data-cell name-cell">
-                  <div className="name-box">
-                    <div className="avatar">
-                      {(user.name || user.NAME || "U").charAt(0).toUpperCase()}
-                    </div>
-                    <span>{user.name || user.NAME || "Unknown"}</span>
-                  </div>
-                </div>
-
-                <div className="data-cell" data-label="Email">
-                  {user.email || user.EMAIL}
-                </div>
-                <div className="data-cell" data-label="Phone">
-                  {user.phone || user.PHONE}
-                </div>
-
-                <div className="data-cell" data-label="Role">
-                  <span
-                    className="role-badge"
-                    style={{
-                      backgroundColor:
-                        user.role === "admin" ? "#ff4d4f" : "#4CAF50",
-                    }}
-                  >
-                    {user.role === "admin" ? "Admin" : "User"}
-                  </span>
-                </div>
-
-                <div className="data-cell" data-label="Action">
-                  <button
-                    onClick={() => toggleRole(user)}
-                    className="role-btn"
-                    style={{
-                      border:
-                        user.role === "admin"
-                          ? "1px solid #eb161a"
-                          : "1px solid #4CAF50",
-                      color: user.role === "admin" ? "#eb161a" : "#4CAF50",
-                    }}
-                  >
-                    {user.role === "admin" ? "Remove Admin" : "Make Admin"}
-                  </button>
-                </div>
+            {filteredUsers.length === 0 ? (
+              <div className="no-results">
+                🔍 No users found matching "{searchTerm}"
               </div>
-            ))}
+            ) : (
+              filteredUsers.map((user, index) => (
+                <div
+                  key={index}
+                  className="data-row"
+                  style={{ gridTemplateColumns: gridColumns }}
+                >
+                  <div className="data-cell name-cell">
+                    <div className="name-box">
+                      <div className="avatar">
+                        {(user.name || user.NAME || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <span>{user.name || user.NAME || "Unknown"}</span>
+                    </div>
+                  </div>
+
+                  <div className="data-cell" data-label="Email">
+                    {user.email || user.EMAIL}
+                  </div>
+                  <div className="data-cell" data-label="Phone">
+                    {user.phone || user.PHONE}
+                  </div>
+
+                  <div className="data-cell" data-label="Role">
+                    <span
+                      className="role-badge"
+                      style={{
+                        backgroundColor:
+                          user.role === "super_admin"
+                            ? "#df6908"
+                            : user.role === "admin"
+                            ? "#ff4d4f"
+                            : "#4CAF50",
+                      }}
+                    >
+                      {user.role === "super_admin"
+                        ? "Super Admin"
+                        : user.role === "admin"
+                        ? "Admin"
+                        : "User"}
+                    </span>
+                  </div>
+
+                  {isSuperAdmin && (
+                    <div className="data-cell" data-label="Action">
+                      {user.role === "super_admin" ||
+                      currentUser.email === user.email ? (
+                        <button
+                          className="role-btn"
+                          style={{
+                            border: "1px solid #aaa",
+                            color: "#aaa",
+                            cursor: "not-allowed",
+                          }}
+                          disabled
+                        >
+                          Protected
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => toggleRole(user)}
+                          className="role-btn"
+                          style={{
+                            border:
+                              user.role === "admin"
+                                ? "1px solid #eb161a"
+                                : "1px solid #4CAF50",
+                            color: user.role === "admin" ? "#eb161a" : "#4CAF50",
+                          }}
+                        >
+                          {user.role === "admin" ? "Remove Admin" : "Make Admin"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>

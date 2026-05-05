@@ -15,8 +15,6 @@ import api from "../../api/axiosConfig";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
-  // ✅ FIRST define states (IMPORTANT)
   const [role, setRole] = useState("");
   const [profile, setProfile] = useState({
     name: "",
@@ -91,13 +89,18 @@ export default function Dashboard() {
       try {
         const token = localStorage.getItem("token");
 
-        if (!token) {
-          navigate("/");
-          return;
-        }
+          const res = await api.get("/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // if (!token) {
+        //   navigate("/");
+        //   return;
+        // }
 
-        // ✅ API interceptor will automatically add Authorization header
-        const res = await api.get("/users");
+        // // ✅ API interceptor will automatically add Authorization header
+        // const res = await api.get("/users");
 
         setProfile({
           name: res.data.name || res.data.full_name || "User",
@@ -118,9 +121,9 @@ export default function Dashboard() {
     loadProfile();
   }, [navigate]);
 
-  // ✅ LINKS
+  //  LINKS
   const allLinks = [
-    ...(role === "admin"
+    ...(role === "admin" || role === "super_admin"
       ? [
           { to: "/admin", icon: FaUserShield, label: "Admin" },
           { to: "/users", icon: FaUserShield, label: "Users" },
@@ -256,7 +259,21 @@ export default function Dashboard() {
                 userSelect: "none",
               }}
             >
-              <FaUserCircle style={{ fontSize: "30px", color: "#555" }} />
+           {profile.photo ? (
+  <img
+    src={`http://localhost:5000${profile.photo}`}
+    alt="avatar"
+    style={{
+      width: "35px",
+      height: "35px",
+      borderRadius: "50%",
+      objectFit: "cover",
+      border: "2px solid #185fa5",
+    }}
+  />
+) : (
+  <FaUserCircle style={{ fontSize: "35px", color: "#555" }} />
+)}
               <div
                 style={{
                   display: "flex",
@@ -308,7 +325,7 @@ export default function Dashboard() {
                     <img
                       src={
                         profile.photo
-                          ? `http://80.225.246.52:5137${profile.photo}`
+                          ? `http://localhost:5000${profile.photo}`
                           : ""
                       }
                       alt="avatar"

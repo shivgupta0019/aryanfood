@@ -40,8 +40,8 @@ export default function AdminRoute() {
   try {
     const decoded = jwtDecode(token);
 
-    if (decoded.role !== "admin") {
-      return <Navigate to="/dashboard" />; // ya /centrallab
+    if (!["admin", "super_admin"].includes(decoded.role)) {
+      return <Navigate to="/dashboard" />;
     }
 
     return <Outlet />;
