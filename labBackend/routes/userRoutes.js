@@ -22,6 +22,9 @@ const {
   getTrfForUserFill,
   fillTrfValues,
   getFilledTrfs,
+  submitTrf,
+  getPendingTrfs,
+  getSubmittedTrfs,
 } = require("../controllers/useTrf");
 
 const {
@@ -33,11 +36,13 @@ const {
   getAllLabs,
   updateLab,
   deleteLab,
-  allProducts,
+  createProducts,
   deleteProduct,
   getAllProducts,
   getAllTest,
   createTest,
+  addPdfToProduct,
+  deletePdfFromProduct,
 } = require("../controllers/useAdminLab");
 const {
   getProfile,
@@ -59,13 +64,19 @@ router.get("/users", authMiddleware, getUsers);
 router.put("/users/:id/role", authMiddleware, updateUserRole);
 router.post("/toggle-admin", authMiddleware, toggleAdmin);
 
-router.get("/profile", profileMiddleware, getProfile);
-router.put(
-  "/profile",
-  profileMiddleware,
-  upload.single("photo"),
-  updateProfile,
-);
+// router.get("/profile", profileMiddleware, getProfile);
+router.get("/profile", profileMiddleware, (req, res, next) => {
+  res.set("Cache-Control", "no-store"); 
+  next();
+}, getProfile);
+// router.put(
+//   "/profile",
+//   profileMiddleware,
+//   upload.single("photo"),
+//   updateProfile,
+// );
+router.put("/profile",profileMiddleware,upload.single("photo"),updateProfile);
+
 
 router.post("/logout", authMiddleware, logout);
 
@@ -78,9 +89,12 @@ router.post("/labs", allLabs);
 router.get("/labs", getAllLabs);
 router.put("/labs/:id", updateLab);
 router.delete("/labs/:id", deleteLab);
-router.post("/products", allProducts);
+router.post("/products", createProducts);
 router.get("/products", getAllProducts);
 router.delete("/products/:id", deleteProduct);
+// PDF routes
+router.put("/products/:id/pdf", upload.single("pdfFile"), addPdfToProduct);
+router.delete("/products/:id/pdf", deletePdfFromProduct);
 router.get("/tests", getAllTest);
 router.post("/create-test", createTest);
 
@@ -88,12 +102,15 @@ router.post("/create-test", createTest);
 router.post("/trf", adminTrf);
 router.get("/trf", allTrf);
 router.get("/trf/filled", getFilledTrfs);
+router.get("/trf/pending", getPendingTrfs);
+router.get("/trf/submitted", getSubmittedTrfs);
 
-// ⚠️ Yeh line PEHLE honi chahiye
+// ⚠️ Specific routes BEFORE parameterized routes
 router.get("/trf/user/:id", getTrfForUserFill);
 router.patch("/trf/:id/fill", fillTrfValues);
+router.post("/trf/:id/submit", submitTrf);
 
-// Yeh lines BAAD MEIN
+// Parameterized routes LAST
 router.get("/trf/:id", getTrfById);
 router.put("/trf/:id", updateTrf);
 router.delete("/trf/:id", deleteTrf);

@@ -1,9 +1,30 @@
 // routes/companies.js
 const oracledb = require("oracledb");
+const path = require("path");
+const fs = require("fs");
 const { dbConfig } = require("../config/db");
 // Oracle DB connection pool (configure once in app.js)
 // Assume pool is available as req.app.locals.pool or similar
-
+// Helper to fetch all products including PDF fields
+async function getAllProductsWithPdf(connection) {
+  const sql = `
+        SELECT id, product_name, product_id, pdf_path, pdf_original_name,
+               COALESCE(updated_at, created_at) AS savedAt
+        FROM product
+        ORDER BY id DESC
+    `;
+  const result = await connection.execute(sql, [], {
+    outFormat: oracledb.OUT_FORMAT_OBJECT,
+  });
+  return result.rows.map((row) => ({
+    id: row.ID,
+    productName: row.PRODUCT_NAME,
+    productId: row.PRODUCT_ID,
+    pdf_path: row.PDF_PATH,
+    pdf_original_name: row.PDF_ORIGINAL_NAME,
+    savedAt: row.SAVEDAT,
+  }));
+}
 // Testing Table CRUD Oprations
 exports.createTest = async (req, res) => {
   let connection;
@@ -117,39 +138,119 @@ exports.getAllTest = async (req, res) => {
 };
 
 // Product Table CRUD Oprations
-exports.deleteProduct = async (req, res) => {
-  const productIdNum = parseInt(req.params.id, 10);
+exports.deletePdfFromProduct = async (req, res) => {
+  const productId = parseInt(req.params.id, 10);
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+
+    const selectSql = `SELECT pdf_path FROM product WHERE id = :id`;
+    const result = await connection.execute(selectSql, [productId], {
+      outFormat: oracledb.OUT_FORMAT_OBJECT,
+    });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const pdfPath = result.rows[0].PDF_PATH;
+    if (pdfPath) {
+      const fullPath = path.join(__dirname, "../", pdfPath);
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+    }
+
+    const updateSql = `UPDATE product SET pdf_path = NULL, pdf_original_name = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = :id`;
+    await connection.execute(updateSql, [productId], { autoCommit: true });
+
+    const allProducts = await getAllProductsWithPdf(connection);
+    res.status(200).json({ message: "PDF deleted successfully", allProducts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete PDF" });
+  } finally {
+    if (connection) await connection.close();
+  }
+};
+exports.addPdfToProduct = async (req, res) => {
+  const productId = parseInt(req.params.id, 10);
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: "No PDF file uploaded" });
 
   let connection;
   try {
     connection = await oracledb.getConnection(dbConfig);
 
+    // Check if product exists and get old PDF
+    const checkSql = `SELECT pdf_path FROM product WHERE id = :id`;
+    const checkResult = await connection.execute(checkSql, [productId], {
+      outFormat: oracledb.OUT_FORMAT_OBJECT,
+    });
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    // Delete old PDF if exists (optional: replace)
+    const oldPath = checkResult.rows[0].PDF_PATH;
+    if (oldPath) {
+      const fullOldPath = path.join(__dirname, "../", oldPath);
+      if (fs.existsSync(fullOldPath)) fs.unlinkSync(fullOldPath);
+    }
+
+    const pdfPath = `/uploads/products/${file.filename}`;
+    const pdfOriginalName = file.originalname;
+
+    const updateSql = `
+            UPDATE product
+            SET pdf_path = :path, pdf_original_name = :name, updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        `;
+    await connection.execute(
+      updateSql,
+      {
+        path: pdfPath,
+        name: pdfOriginalName,
+        id: productId,
+      },
+      { autoCommit: true },
+    );
+
+    const allProducts = await getAllProductsWithPdf(connection);
+    res.status(200).json({ message: "PDF added successfully", allProducts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add PDF" });
+  } finally {
+    if (connection) await connection.close();
+  }
+};
+exports.deleteProduct = async (req, res) => {
+  const productIdNum = parseInt(req.params.id, 10);
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+
+    // First get pdf_path if exists
+    const selectPdf = `SELECT pdf_path FROM product WHERE id = :id`;
+    const pdfResult = await connection.execute(selectPdf, [productIdNum], {
+      outFormat: oracledb.OUT_FORMAT_OBJECT,
+    });
+    const pdfPath = pdfResult.rows[0]?.PDF_PATH;
+
+    // Delete product
     const deleteSql = `DELETE FROM product WHERE id = :id`;
     const result = await connection.execute(deleteSql, [productIdNum], {
       autoCommit: true,
     });
-
     if (result.rowsAffected === 0) {
       return res.status(404).json({ error: "Product not found." });
     }
 
-    // Fetch all remaining products
-    const selectSql = `
-      SELECT *
-      FROM product
-      ORDER BY id DESC
-    `;
-    const allRows = await connection.execute(selectSql, [], {
-      outFormat: oracledb.OUT_FORMAT_OBJECT,
-    });
+    // Delete PDF file if exists
+    if (pdfPath) {
+      const fullPath = path.join(__dirname, "../", pdfPath); // adjust relative path
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+    }
 
-    const allProducts = allRows.rows.map((row) => ({
-      id: row.ID,
-      productName: row.PRODUCT_NAME,
-      productId: row.PRODUCT_ID,
-      savedAt: row?.UPDATED_AT || row?.CREATED_AT || row?.savedAt,
-    }));
-
+    const allProducts = await getAllProductsWithPdf(connection);
     res
       .status(200)
       .json({ message: "Product deleted successfully", allProducts });
@@ -165,41 +266,17 @@ exports.getAllProducts = async (req, res) => {
   let connection;
   try {
     connection = await oracledb.getConnection(dbConfig);
-
-    // Fetch all products (latest first)
-    const selectSql = `
-      SELECT *
-      FROM product
-      ORDER BY id DESC
-    `;
-    const allRows = await connection.execute(selectSql, [], {
-      outFormat: oracledb.OUT_FORMAT_OBJECT,
-    });
-
-    const allProducts = allRows.rows.map((row) => ({
-      id: row.ID,
-      productName: row.PRODUCT_NAME,
-      productId: row.PRODUCT_ID,
-      savedAt: row?.UPDATED_AT || row?.CREATED_AT || row?.savedAt,
-    }));
-
-    res.status(201).json({
-      message: "Product saved successfully",
-
-      allProducts,
-    });
+    const allProducts = await getAllProductsWithPdf(connection);
+    res.status(200).json({ allProducts }); // status 200 is more appropriate
   } catch (err) {
-    console.error("Error saving product:", err);
-    if (err.errorNum === 1) {
-      return res.status(409).json({ error: "Product ID already exists." });
-    }
+    console.error("Error fetching products:", err);
     res.status(500).json({ error: "Internal server error" });
   } finally {
     if (connection) await connection.close();
   }
 };
 
-exports.allProducts = async (req, res) => {
+exports.createProducts = async (req, res) => {
   const { productName, productId } = req.body;
 
   if (!productName || !productName.trim()) {

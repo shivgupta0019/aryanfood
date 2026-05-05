@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // ✅ Check if token exists
+    //  Check if token exists
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/");

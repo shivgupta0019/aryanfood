@@ -28,8 +28,7 @@ coverage/
 # Optional REPL history
 .node_repl_history
 
-# dotenv environment variables file
-.env
+
 
 # MacOS temp files
 .DS_Store

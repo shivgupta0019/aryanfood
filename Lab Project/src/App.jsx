@@ -12,7 +12,7 @@ import CentrallabPage from "./Components/CentralLab/CentralLabPage";
 import CentralLabForm from "./Components/CentralLab/CentralLabForm";
 
 import Dashboard from "./Components/home/Dashboard";
-import DashboardPage from "./Components/home/DashboardPage";
+// import DashboardPage from "./Components/home/DashboardPage";
 
 import ProfilePage from "./Components/User/ProfilePage";
 import DownloadResults from "./Components/DownloadResults";
@@ -44,7 +44,7 @@ function Layout() {
     "/otp",
     "/forgot-password",
     "/reset-password",
-    "/dashboard",
+    // "/dashboard",
   ];
 
   const hideDashboard = hideRoutes.includes(location.pathname);
@@ -74,7 +74,7 @@ function Layout() {
         ///////////////////////////////////////
         <Route element={<ProtectedRoute />}>
           {/* ✅ JWT Protected Dashboard Page */}
-          <Route path="/dashboard" element={<DashboardPage />} />
+          {/* <Route path="/dashboard" element={<DashboardPage />} /> */}
           <Route path="/centrallab" element={<CentrallabPage />} />
           <Route path="/project" element={<ProjecPage />} />
           <Route path="/result" element={<DownloadResults />} />

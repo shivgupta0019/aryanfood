@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import api from "../../api/axiosConfig";
 
 // Spinner Component
@@ -17,7 +16,6 @@ const Spinner = ({ size = 20, color = "#000000" }) => (
   />
 );
 
-// Add keyframe animation once
 if (
   typeof document !== "undefined" &&
   !document.querySelector("#spinner-style")
@@ -33,13 +31,12 @@ if (
   document.head.appendChild(style);
 }
 
-// Helper: format date
 const formatDate = (isoString) => {
   if (!isoString) return "N/A";
   return new Date(isoString).toLocaleString();
 };
 
-// ========== View Modal (Read-only) - loader inside card ==========
+// ========== View Modal ==========
 const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
   if (!trf) return null;
   return (
@@ -87,7 +84,7 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
                   </div>
                   <div>
                     <strong>Status:</strong>{" "}
-                    {trf.status === "filled" ? "✅ Filled" : "❌ Not Filled"}
+                    {trf.status === "filled" ? "✅ Filled" : "⏳ Not Filled"}
                   </div>
                   <div>
                     <strong>Created:</strong> {formatDate(trf.createdAt)}
@@ -141,7 +138,7 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
   );
 };
 
-// ========== Edit/Fill Modal - loader inside card ==========
+// ========== Edit/Fill Modal ==========
 const EditModal = ({
   trf,
   fieldsByTest,
@@ -250,24 +247,21 @@ const AllTestRequests = () => {
   const [trfList, setTrfList] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // View modal
   const [selectedTrf, setSelectedTrf] = useState(null);
   const [selectedFieldsByTest, setSelectedFieldsByTest] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
-
-  // Edit modal
   const [editingTrf, setEditingTrf] = useState(null);
   const [editFieldsByTest, setEditFieldsByTest] = useState({});
   const [editLoading, setEditLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submittingId, setSubmittingId] = useState(null);
 
-  // Load all TRFs
+  // Load pending TRFs (not_filled + filled)
   const loadTrfList = async (showRefreshLoader = false) => {
     if (showRefreshLoader) setRefreshing(true);
     else setLoadingList(true);
     try {
-      const response = await api.get(`/trf`);
+      const response = await api.get(`/trf/pending`);
       setTrfList(response.data);
     } catch (error) {
       console.error("Failed to load TRFs", error);
@@ -338,7 +332,7 @@ const AllTestRequests = () => {
       alert("Test results saved successfully!");
       setEditingTrf(null);
       setEditFieldsByTest({});
-      loadTrfList(true); // refresh list
+      loadTrfList(true);
     } catch (error) {
       console.error(error);
       alert("Failed to save results");
@@ -352,41 +346,54 @@ const AllTestRequests = () => {
     setEditFieldsByTest({});
   };
 
-  // Helper to get test names
-  const getTestNames = (trf) => {
-    if (trf.testNames) return trf.testNames;
-    if (trf.selectedTests && trf.selectedTests[0]?.testName) {
-      return trf.selectedTests.map((t) => t.testName);
+  // Submit TRF
+  const handleSubmit = async (trfId) => {
+    if (
+      !window.confirm(
+        "Submit this TRF? It will become read-only and moved to reports.",
+      )
+    )
+      return;
+    setSubmittingId(trfId);
+    try {
+      await api.post(`/trf/${trfId}/submit`);
+      alert("TRF submitted successfully!");
+      // Remove from list
+      setTrfList((prev) => prev.filter((trf) => trf.id !== trfId));
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.error || "Submission failed");
+    } finally {
+      setSubmittingId(null);
     }
-    return [];
   };
 
-  // Render table content (loader inside card)
+  const getTestNames = (trf) => trf.testNames || [];
+
+  // Render table
   const renderTableContent = () => {
     if (loadingList && !refreshing) {
       return (
         <div style={styles.loaderContainer}>
           <Spinner size={36} />
-          <p style={{ marginTop: 16 }}>Loading requests...</p>
+          <p>Loading requests...</p>
         </div>
       );
     }
-
     if (trfList.length === 0) {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
-          <h3>No test request forms found</h3>
-          <p>Please create a test request from the admin panel first.</p>
+          <h3>No pending test request forms</h3>
+          <p>All requests have been submitted or none exist yet.</p>
         </div>
       );
     }
-
     return (
       <>
         <div style={styles.statsBar}>
           <span>
-            📊 Total forms: <strong>{trfList.length}</strong>
+            📊 Pending forms: <strong>{trfList.length}</strong>
           </span>
           <button
             onClick={() => loadTrfList(true)}
@@ -464,6 +471,19 @@ const AllTestRequests = () => {
                       >
                         {trf.status === "filled" ? "✏️ Edit" : "📝 Fill"}
                       </button>
+                      {trf.status === "filled" && (
+                        <button
+                          onClick={() => handleSubmit(trf.id)}
+                          style={styles.submitBtn}
+                          disabled={submittingId === trf.id}
+                        >
+                          {submittingId === trf.id ? (
+                            <Spinner size={16} />
+                          ) : (
+                            "✅ Submit"
+                          )}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -480,13 +500,10 @@ const AllTestRequests = () => {
       <div style={styles.header}>
         <h1 style={styles.mainTitle}>📋 Fill Test Request Forms</h1>
         <p style={styles.subtitle}>
-          Click <strong>Fill the Form</strong> to enter test values. Once saved,
-          status changes to <strong>Filled</strong>.
+          Fill or edit values, then submit final report.
         </p>
       </div>
-
       <div style={styles.tableWrapper}>{renderTableContent()}</div>
-
       {selectedTrf && (
         <ViewModal
           trf={selectedTrf}
@@ -513,7 +530,7 @@ const AllTestRequests = () => {
   );
 };
 
-// ========== Styles (with modal loader container) ==========
+// ========== Styles ==========
 const styles = {
   container: {
     maxWidth: "1280px",
@@ -545,7 +562,6 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     padding: "60px 20px",
-    background: "#ffffff",
   },
   statsBar: {
     display: "flex",
@@ -669,6 +685,20 @@ const styles = {
     alignItems: "center",
     gap: "4px",
   },
+  submitBtn: {
+    background: "#059669",
+    color: "#fff",
+    border: "none",
+    borderRadius: "30px",
+    padding: "5px 12px",
+    marginLeft: "8px",
+    cursor: "pointer",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+  },
   emptyState: {
     textAlign: "center",
     padding: "64px 24px",
@@ -676,7 +706,6 @@ const styles = {
     borderRadius: "24px",
   },
   emptyIcon: { fontSize: "4rem", marginBottom: "16px", opacity: 0.6 },
-  // Modal styles with loader container inside
   modalOverlay: {
     position: "fixed",
     top: 0,
@@ -826,14 +855,9 @@ const styles = {
   },
 };
 
-// Add global hover style for table rows
 if (typeof document !== "undefined") {
   const style = document.createElement("style");
-  style.textContent = `
-    .lm-table-row:hover {
-      background-color: #f8fafc;
-    }
-  `;
+  style.textContent = `.lm-table-row:hover { background-color: #f8fafc; }`;
   document.head.appendChild(style);
 }
 

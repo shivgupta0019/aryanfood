@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import api from "../../api/axiosConfig";
 
-// Spinner Component
 const Spinner = ({ size = 20, color = "#000000" }) => (
   <div
     style={{
@@ -17,33 +15,25 @@ const Spinner = ({ size = 20, color = "#000000" }) => (
   />
 );
 
-// Add keyframe animation once
 if (
   typeof document !== "undefined" &&
   !document.querySelector("#spinner-style")
 ) {
   const style = document.createElement("style");
   style.id = "spinner-style";
-  style.textContent = `
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  `;
+  style.textContent = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
   document.head.appendChild(style);
 }
 
-// Helper: format date
 const formatDate = (isoString) => {
   if (!isoString) return "N/A";
   return new Date(isoString).toLocaleString();
 };
 
-// ========== View Modal (read-only) with loader inside ==========
+// ========== View Modal (Read-only) ==========
 const ViewModal = ({ trf, onClose }) => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     setLoading(true);
     api
@@ -52,7 +42,6 @@ const ViewModal = ({ trf, onClose }) => {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [trf.id]);
-
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -91,6 +80,10 @@ const ViewModal = ({ trf, onClose }) => {
                   </div>
                   <div>
                     <strong>Lot No.:</strong> {details.trf.lotNo || "—"}
+                  </div>
+                  <div>
+                    <strong>Submitted At:</strong>{" "}
+                    {formatDate(details.trf.submittedAt)}
                   </div>
                 </div>
               </div>
@@ -132,7 +125,7 @@ const ViewModal = ({ trf, onClose }) => {
   );
 };
 
-// ========== Edit Modal – loader inside the card ==========
+// ========== Edit Modal (Full editing + custom fields) ==========
 const EditModal = ({
   trf,
   testData,
@@ -141,7 +134,7 @@ const EditModal = ({
   onSave,
   onCancel,
   saving,
-  loading, // true while fetching initial data
+  loading,
 }) => {
   const [newFieldName, setNewFieldName] = useState({});
   const [newFieldValue, setNewFieldValue] = useState({});
@@ -277,7 +270,7 @@ const EditModal = ({
   );
 };
 
-// ========== Main Component ==========
+// ========== Main Component (Editable Submitted TRFs) ==========
 const AllReports = () => {
   const [trfList, setTrfList] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -287,7 +280,7 @@ const AllReports = () => {
   const [editTestData, setEditTestData] = useState(null);
   const [testNameToIdMap, setTestNameToIdMap] = useState({});
   const [saving, setSaving] = useState(false);
-  const [editLoading, setEditLoading] = useState(false); // loader inside modal
+  const [editLoading, setEditLoading] = useState(false);
 
   // Fetch test name → testId mapping
   useEffect(() => {
@@ -303,11 +296,12 @@ const AllReports = () => {
       .catch(console.error);
   }, []);
 
+  // Load submitted TRFs
   const loadTrfs = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoadingList(true);
     try {
-      const response = await api.get(`/trf/filled`);
+      const response = await api.get(`/trf/submitted`);
       setTrfList(response.data);
     } catch (err) {
       console.error(err);
@@ -322,14 +316,14 @@ const AllReports = () => {
     loadTrfs();
   }, []);
 
-  // Start edit – open modal immediately with loader
+  // Start edit – open modal with loader
   const startEdit = async (trf) => {
-    setEditingTrf(trf); // open modal
-    setEditLoading(true); // show loader inside modal
-    setEditTestData(null); // clear previous data
+    setEditingTrf(trf);
+    setEditLoading(true);
+    setEditTestData(null);
     try {
       const res = await api.get(`/trf/user/${trf.id}`);
-      const { trf: trfInfo, fieldsByTest } = res.data;
+      const { fieldsByTest } = res.data;
       const testDataObj = {};
       for (const [testName, fields] of Object.entries(fieldsByTest)) {
         const testId = testNameToIdMap[testName];
@@ -441,7 +435,7 @@ const AllReports = () => {
 
   const getTestNames = (trf) => trf.testNames || [];
 
-  // Table content renderer
+  // Table renderer
   const renderTableContent = () => {
     if (loadingList && !refreshing) {
       return (
@@ -455,8 +449,8 @@ const AllReports = () => {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
-          <h3>No filled test requests yet</h3>
-          <p>Once users fill test values, they will appear here.</p>
+          <h3>No submitted test requests yet</h3>
+          <p>After users fill and submit forms, they will appear here.</p>
         </div>
       );
     }
@@ -464,7 +458,7 @@ const AllReports = () => {
       <>
         <div style={styles.statsBar}>
           <span>
-            ✅ Total filled forms: <strong>{trfList.length}</strong>
+            ✅ Submitted forms: <strong>{trfList.length}</strong>
           </span>
           <button
             onClick={() => loadTrfs(true)}
@@ -483,59 +477,52 @@ const AllReports = () => {
                 <th style={styles.th}>Request Name</th>
                 <th style={styles.th}>Product</th>
                 <th style={styles.th}>Tests</th>
-                <th style={styles.th}>Last Updated</th>
-                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Submitted At</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {trfList.map((trf) => {
-                const testNames = getTestNames(trf);
-                return (
-                  <tr key={trf.id} style={styles.tableRow}>
-                    <td style={styles.td}>
-                      <code style={styles.codeBadge}>{trf.trfCode}</code>
-                    </td>
-                    <td style={styles.td}>{trf.companyName}</td>
-                    <td style={styles.td}>{trf.requestName}</td>
-                    <td style={styles.td}>{trf.productName}</td>
-                    <td style={styles.td}>
-                      <div style={styles.tagsContainer}>
-                        {testNames.slice(0, 2).map((name, idx) => (
+              {trfList.map((trf) => (
+                <tr key={trf.id} style={styles.tableRow}>
+                  <td style={styles.td}>
+                    <code style={styles.codeBadge}>{trf.trfCode}</code>
+                  </td>
+                  <td style={styles.td}>{trf.companyName}</td>
+                  <td style={styles.td}>{trf.requestName}</td>
+                  <td style={styles.td}>{trf.productName}</td>
+                  <td style={styles.td}>
+                    <div style={styles.tagsContainer}>
+                      {getTestNames(trf)
+                        .slice(0, 2)
+                        .map((name, idx) => (
                           <span key={idx} style={styles.testTag}>
                             {name}
                           </span>
                         ))}
-                        {testNames.length > 2 && (
-                          <span style={styles.testTagMore}>
-                            +{testNames.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={styles.td}>
-                      {formatDate(trf.updatedAt || trf.createdAt)}
-                    </td>
-                    <td style={styles.td}>
-                      <span style={styles.filledBadge}>✅ Filled</span>
-                    </td>
-                    <td style={styles.td}>
-                      <button
-                        onClick={() => setSelectedTrf(trf)}
-                        style={styles.viewBtn}
-                      >
-                        👁️ View
-                      </button>
-                      <button
-                        onClick={() => startEdit(trf)}
-                        style={styles.editBtn}
-                      >
-                        ✏️ Edit
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                      {getTestNames(trf).length > 2 && (
+                        <span style={styles.testTagMore}>
+                          +{getTestNames(trf).length - 2}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={styles.td}>{formatDate(trf.submittedAt)}</td>
+                  <td style={styles.td}>
+                    <button
+                      onClick={() => setSelectedTrf(trf)}
+                      style={styles.viewBtn}
+                    >
+                      👁️ View
+                    </button>
+                    <button
+                      onClick={() => startEdit(trf)}
+                      style={styles.editBtn}
+                    >
+                      ✏️ Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -546,9 +533,9 @@ const AllReports = () => {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.mainTitle}>📊 Filled Test Requests Reports</h1>
+        <h1 style={styles.mainTitle}>📊All TRF Test Requests Reports </h1>
         <p style={styles.subtitle}>
-          You can edit values, add custom fields with values, and save.
+          View and edit finalised test requests (including custom fields).
         </p>
       </div>
       <div style={styles.tableWrapper}>{renderTableContent()}</div>
@@ -556,8 +543,6 @@ const AllReports = () => {
       {selectedTrf && (
         <ViewModal trf={selectedTrf} onClose={() => setSelectedTrf(null)} />
       )}
-
-      {/* Edit modal – renders immediately when editingTrf exists, shows loader inside */}
       {editingTrf && (
         <EditModal
           trf={editingTrf}
@@ -574,7 +559,7 @@ const AllReports = () => {
   );
 };
 
-// ========== Modern, Clean Styles ==========
+// ========== Styles (same as before, plus edit button) ==========
 const styles = {
   container: {
     maxWidth: "1280px",
@@ -671,15 +656,6 @@ const styles = {
     borderRadius: "30px",
     fontSize: "0.7rem",
     fontWeight: "500",
-  },
-  filledBadge: {
-    background: "#dcfce7",
-    color: "#15803d",
-    padding: "4px 10px",
-    borderRadius: "30px",
-    fontSize: "0.7rem",
-    fontWeight: "600",
-    display: "inline-block",
   },
   viewBtn: {
     background: "transparent",
@@ -901,7 +877,6 @@ const styles = {
   },
 };
 
-// Add global hover style for table rows
 if (typeof document !== "undefined") {
   const style = document.createElement("style");
   style.textContent = `.lm-table-row:hover { background-color: #f8fafc; }`;
