@@ -9,7 +9,7 @@
 // const dev = "http://localhost:5173";
 // const app = express();
 
-// // ✅ CORS FIX
+// //  CORS FIX
 // app.use(
 //   cors({
 //     origin: pro,
