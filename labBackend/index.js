@@ -81,7 +81,7 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - startTime;
     const responseBody = res.locals.responseBody || {};
-    
+
     const responseDetails = {
       timestamp,
       method: req.method,
