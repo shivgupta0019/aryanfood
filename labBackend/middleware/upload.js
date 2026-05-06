@@ -2,26 +2,25 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, "../uploads/products");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const productUploadDir = path.join(__dirname, "../uploads/products");
+const profileUploadDir = path.join(__dirname, "../uploads/profile");
+
+for (const dir of [productUploadDir, profileUploadDir]) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 }
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename: timestamp-random-originalname
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
+const createStorage = (destinationDir) =>
+  multer.diskStorage({
+    destination: (req, file, cb) => cb(null, destinationDir),
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+  });
 
-// File filter - only allow PDF files
-const fileFilter = (req, file, cb) => {
+const pdfFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") {
     cb(null, true);
   } else {
@@ -29,11 +28,27 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Multer configuration with storage, file filter, and size limit
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+const imageFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files are allowed"), false);
+  }
+};
+
+const productUpload = multer({
+  storage: createStorage(productUploadDir),
+  fileFilter: pdfFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-module.exports = upload;
+const imageUpload = multer({
+  storage: createStorage(profileUploadDir),
+  fileFilter: imageFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+module.exports = {
+  productUpload,
+  imageUpload,
+};

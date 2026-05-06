@@ -76,74 +76,7 @@ exports.getProfile = async (req, res) => {
     if (connection) await connection.close();
   }
 };
-// exports.getProfile1 = async (req, res) => {
-//   let connection;
 
-//   try {
-//     const email = req.user.email;
-
-//     connection = await oracledb.getConnection(dbConfig);
-
-//     const result = await connection.execute(
-//       `
-//       SELECT 
-//         u.email,
-//         u.phone,
-//         p.full_name,
-//         p.dob,
-//         p.gender,
-//         p.city,
-//         p.state,
-//         p.address,
-//         p.bio,
-//         p.photo
-//       FROM users u
-//       LEFT JOIN user_profiles p
-//       ON u.email = p.user_email
-//       WHERE u.email = :email
-//       `,
-//       { email },
-//       { outFormat: oracledb.OUT_FORMAT_OBJECT },
-//     );
-
-//     const row = result.rows[0] || {};
-
-//     // 🔥 CLOB FIX
-//     let photo = null;
-//     if (row.PHOTO) {
-//       if (typeof row.PHOTO === "string") {
-//         photo = row.PHOTO;
-//       } else {
-//         photo = row.PHOTO.toString();
-//       }
-//     }
-
-//     // 🔥 DATE FIX
-//     let dob = "";
-//     if (row.DOB) {
-//       dob: row.DOB ? row.DOB.toISOString() : "";
-//     }
-
-//     res.json({
-//       email: row.EMAIL || "",
-//       phone: row.PHONE || "",
-//       full_name: row.FULL_NAME || "",
-//       dob: row.DOB ? row.DOB.toISOString() : "", // ✅ FIX
-//       gender: row.GENDER || "",
-//       city: row.CITY || "",
-//       state: row.STATE || "",
-//       address: row.ADDRESS || "",
-//       bio: row.BIO || "",
-//       photo: photo,
-//     });
-//   } catch (err) {
-//     console.log("❌ GET ERROR:", err);
-//     res.status(500).json({ message: err.message });
-//   } finally {
-//     if (connection) await connection.close();
-//   }
-// };
-//////////////////////
 exports.updateProfile = async (req, res) => {
   let connection;
 
@@ -153,7 +86,7 @@ exports.updateProfile = async (req, res) => {
     const { full_name, dob, gender, city, state, address, bio } = req.body;
 
     // ✅ FILE HANDLE (IMPORTANT)
-    const photo = req.file ? `/uploads/${req.file.filename}` : null;
+    const photo = req.file ? `/uploads/profile/${req.file.filename}` : null;
 
     connection = await oracledb.getConnection(dbConfig);
 
