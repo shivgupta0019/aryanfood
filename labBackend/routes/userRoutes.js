@@ -49,7 +49,7 @@ const {
   updateProfile,
 } = require("../controllers/profileController");
 const profileMiddleware = require("../middleware/profileMiddleware");
-const upload = require("../middleware/upload");
+const { productUpload, imageUpload } = require("../middleware/upload");
 
 router.post("/signup", signup);
 router.post("/login", login);
@@ -64,7 +64,6 @@ router.get("/users", authMiddleware, getUsers);
 router.put("/users/:id/role", authMiddleware, updateUserRole);
 router.post("/toggle-admin", authMiddleware, toggleAdmin);
 
-// router.get("/profile", profileMiddleware, getProfile);
 router.get(
   "/profile",
   profileMiddleware,
@@ -74,19 +73,14 @@ router.get(
   },
   getProfile,
 );
-// router.put(
-//   "/profile",
-//   profileMiddleware,
-//   upload.single("photo"),
-//   updateProfile,
-// );
 router.put(
   "/profile",
   profileMiddleware,
-  upload.single("photo"),
+  imageUpload.single("photo"),
   updateProfile,
 );
 
+///logout
 router.post("/logout", authMiddleware, logout);
 
 //lab routes
@@ -102,7 +96,11 @@ router.post("/products", createProducts);
 router.get("/products", getAllProducts);
 router.delete("/products/:id", deleteProduct);
 // PDF routes
-router.put("/products/:id/pdf", upload.single("pdfFile"), addPdfToProduct);
+router.put(
+  "/products/:id/pdf",
+  productUpload.single("pdfFile"),
+  addPdfToProduct,
+);
 router.delete("/products/:id/pdf", deletePdfFromProduct);
 router.get("/tests", getAllTest);
 router.post("/create-test", createTest);
@@ -114,7 +112,7 @@ router.get("/trf/filled", getFilledTrfs);
 router.get("/trf/pending", getPendingTrfs);
 router.get("/trf/submitted", getSubmittedTrfs);
 
-// ⚠️ Specific routes BEFORE parameterized routes
+//  Specific routes BEFORE parameterized routes
 router.get("/trf/user/:id", getTrfForUserFill);
 router.patch("/trf/:id/fill", fillTrfValues);
 router.post("/trf/:id/submit", submitTrf);
