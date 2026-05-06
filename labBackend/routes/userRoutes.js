@@ -64,18 +64,28 @@ router.get("/users", authMiddleware, getUsers);
 router.put("/users/:id/role", authMiddleware, updateUserRole);
 router.post("/toggle-admin", authMiddleware, toggleAdmin);
 
-router.get("/profile", profileMiddleware, (req, res, next) => {
-  res.set("Cache-Control", "no-store"); 
-  next();
-}, getProfile);
-router.put("/profile", profileMiddleware, imageUpload.single("photo"), updateProfile);
+router.get(
+  "/profile",
+  profileMiddleware,
+  (req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  },
+  getProfile,
+);
+router.put(
+  "/profile",
+  profileMiddleware,
+  imageUpload.single("photo"),
+  updateProfile,
+);
 
 ///logout
 router.post("/logout", authMiddleware, logout);
 
 //lab routes
 router.post("/companies", allCompanies);
-router.get("/getCompanies", getAllCompanies);
+router.get("/getCompanies1", getAllCompanies);
 router.put("/companies/:id", updateCompany);
 router.delete("/companies/:id", deleteCompany);
 router.post("/labs", allLabs);
@@ -86,11 +96,14 @@ router.post("/products", createProducts);
 router.get("/products", getAllProducts);
 router.delete("/products/:id", deleteProduct);
 // PDF routes
-router.put("/products/:id/pdf", productUpload.single("pdfFile"), addPdfToProduct);
+router.put(
+  "/products/:id/pdf",
+  productUpload.single("pdfFile"),
+  addPdfToProduct,
+);
 router.delete("/products/:id/pdf", deletePdfFromProduct);
 router.get("/tests", getAllTest);
 router.post("/create-test", createTest);
-
 
 //trf
 router.post("/trf", adminTrf);
