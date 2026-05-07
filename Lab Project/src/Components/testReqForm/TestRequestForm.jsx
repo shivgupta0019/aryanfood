@@ -1,5 +1,5 @@
 import api from "../../api/axiosConfig";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 const generateUniqueId = () =>
   `${Date.now()}-${Math.random().toString(36).substr(2, 8)}`;
@@ -26,6 +26,19 @@ if (typeof document !== "undefined") {
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+    .trf-sort-indicator {
+      margin-left: 6px;
+      font-size: 0.7rem;
+      opacity: 0.6;
+    }
+    .trf-table th {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    .trf-table th:hover {
+      background-color: #f1f5f9 !important;
     }
   `;
   document.head.appendChild(style);
@@ -68,6 +81,21 @@ const TestRequestForm = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [loadingEditId, setLoadingEditId] = useState(null);
 
+  // ---------- SEARCH STATES FOR DROPDOWNS ----------
+  const [companySearch, setCompanySearch] = useState("");
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [labSearch, setLabSearch] = useState("");
+  const [showLabDropdown, setShowLabDropdown] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+
+  // ---------- TABLE SEARCH / SORT / PAGINATION ----------
+  const [tableSearch, setTableSearch] = useState("");
+  const [sortField, setSortField] = useState("id"); // can be 'trfCode', 'companyName', 'requestName', 'labName', 'productName', 'tests'
+  const [sortDirection, setSortDirection] = useState("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // ========== Helper: build fields for a test ==========
   const buildInitialFields = (testName) => {
     const fieldsArray = allTestingFields[testName];
@@ -81,6 +109,25 @@ const TestRequestForm = () => {
       dbFieldId: f.id,
     }));
   };
+
+  // ========== Filter functions for searchable dropdowns ==========
+  const filteredCompanies = companySearch
+    ? companiesData.filter((comp) =>
+        comp.companyName.toLowerCase().includes(companySearch.toLowerCase()),
+      )
+    : companiesData;
+
+  const filteredLabs = labSearch
+    ? allLabs.filter((lab) =>
+        lab.labName.toLowerCase().includes(labSearch.toLowerCase()),
+      )
+    : allLabs;
+
+  const filteredProducts = productSearch
+    ? allProducts.filter((prod) =>
+        prod.productName.toLowerCase().includes(productSearch.toLowerCase()),
+      )
+    : allProducts;
 
   // ========== API calls ==========
   const handleGetAllTests = async () => {
@@ -145,6 +192,7 @@ const TestRequestForm = () => {
     try {
       const response = await api.get("/trf");
       setTrfList(response.data);
+      setCurrentPage(1); // reset to first page when new data arrives
     } catch (error) {
       console.error("Error fetching TRF list:", error);
       alert("Failed to load TRF list");
@@ -194,6 +242,24 @@ const TestRequestForm = () => {
       if (!testData[testName]) initializeTestData(testName);
     });
   }, [selectedTests]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('[data-dropdown="company"]')) {
+        setShowCompanyDropdown(false);
+      }
+      if (!e.target.closest('[data-dropdown="lab"]')) {
+        setShowLabDropdown(false);
+      }
+      if (!e.target.closest('[data-dropdown="product"]')) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const toggleTest = (testName) => {
     if (selectedTests.includes(testName)) {
@@ -426,6 +492,203 @@ const TestRequestForm = () => {
 
   const cancelEdit = () => resetForm();
 
+  // ========== Table sorting, filtering, pagination ==========
+  // Helper to get test names string for filtering/sorting
+  const getTestNamesList = (trf) => {
+    const testNames = trf.selectedTests.map((t) => {
+      const entry = Object.entries(allTestingFields).find(
+        ([, fields]) => fields[0]?.id === t.testId,
+      );
+      return entry ? entry[0] : `Test_${t.testId}`;
+    });
+    return testNames.join(" ");
+  };
+
+  const getTestNamesForDisplay = (trf) => {
+    const testNames = trf.selectedTests.map((t) => {
+      const entry = Object.entries(allTestingFields).find(
+        ([, fields]) => fields[0]?.id === t.testId,
+      );
+      return entry ? entry[0] : `Test_${t.testId}`;
+    });
+    return testNames;
+  };
+
+  // Filter logic
+  const filterTableData = (data) => {
+    if (!tableSearch) return data;
+    const searchLower = tableSearch.toLowerCase();
+    return data.filter((item) => {
+      // Search in all visible fields
+      return (
+        item.trfCode?.toLowerCase().includes(searchLower) ||
+        item.companyName?.toLowerCase().includes(searchLower) ||
+        item.requestName?.toLowerCase().includes(searchLower) ||
+        item.labName?.toLowerCase().includes(searchLower) ||
+        item.productName?.toLowerCase().includes(searchLower) ||
+        getTestNamesList(item).toLowerCase().includes(searchLower)
+      );
+    });
+  };
+
+  // Sort logic
+  const sortTableData = (data, field, direction) => {
+    if (!field) return data;
+    return [...data].sort((a, b) => {
+      let valA, valB;
+      if (field === "tests") {
+        valA = getTestNamesList(a);
+        valB = getTestNamesList(b);
+      } else if (field === "trfCode") {
+        valA = a.trfCode || "";
+        valB = b.trfCode || "";
+      } else if (field === "companyName") {
+        valA = a.companyName || "";
+        valB = b.companyName || "";
+      } else if (field === "requestName") {
+        valA = a.requestName || "";
+        valB = b.requestName || "";
+      } else if (field === "labName") {
+        valA = a.labName || "";
+        valB = b.labName || "";
+      } else if (field === "productName") {
+        valA = a.productName || "";
+        valB = b.productName || "";
+      } else {
+        valA = a[field] || "";
+        valB = b[field] || "";
+      }
+      if (typeof valA === "string") {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+      if (valA < valB) return direction === "asc" ? -1 : 1;
+      if (valA > valB) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // Pagination
+  const paginateData = (data, page, perPage) => {
+    const start = (page - 1) * perPage;
+    return data.slice(start, start + perPage);
+  };
+
+  // Processed table data
+  const processedTableData = useMemo(() => {
+    if (!trfList.length) return { data: [], total: 0 };
+    const filtered = filterTableData(trfList);
+    const sorted = sortTableData(filtered, sortField, sortDirection);
+    const paginated = paginateData(sorted, currentPage, itemsPerPage);
+    return { data: paginated, total: filtered.length };
+  }, [
+    trfList,
+    tableSearch,
+    sortField,
+    sortDirection,
+    currentPage,
+    itemsPerPage,
+  ]);
+
+  // Reset page when search or items per page changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tableSearch, itemsPerPage]);
+
+  // Handle sort column click
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Sort indicator component
+  const SortIndicator = ({ field }) => {
+    if (sortField !== field)
+      return <span className="trf-sort-indicator"></span>;
+    return (
+      <span className="trf-sort-indicator">
+        {sortDirection === "asc" ? "↑" : "↓"}
+      </span>
+    );
+  };
+
+  // Pagination controls component
+  const PaginationControls = () => {
+    const totalPages = Math.ceil(processedTableData.total / itemsPerPage);
+    const startItem =
+      processedTableData.total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(
+      currentPage * itemsPerPage,
+      processedTableData.total,
+    );
+
+    return (
+      <div style={styles.paginationContainer}>
+        <div style={styles.itemsPerPage}>
+          <span>Show</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            style={styles.itemsPerPageSelect}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+          <span>entries</span>
+        </div>
+        <div>
+          Showing {startItem} to {endItem} of {processedTableData.total} entries
+        </div>
+        <div style={styles.paginationButtons}>
+          <button
+            style={styles.paginationBtn}
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+            return (
+              <button
+                key={pageNum}
+                style={{
+                  ...styles.paginationBtn,
+                  ...(currentPage === pageNum ? styles.paginationActive : {}),
+                }}
+                onClick={() => setCurrentPage(pageNum)}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          <button
+            style={styles.paginationBtn}
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // ========== Initial load ==========
   useEffect(() => {
     handleGetAllTests();
@@ -459,19 +722,103 @@ const TestRequestForm = () => {
         <div style={styles.row}>
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Company Name *</label>
-            <select
-              value={selectedCompanyName}
-              onChange={(e) => setSelectedCompanyName(e.target.value)}
-              style={styles.input}
-              disabled={loadingCompanies}
-            >
-              <option value="">-- Select Company --</option>
-              {companiesData.map((comp) => (
-                <option key={comp.id} value={comp.companyName}>
-                  {comp.companyName}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: "relative" }} data-dropdown="company">
+              <input
+                type="text"
+                placeholder="Search or select company..."
+                value={
+                  companySearch !== ""
+                    ? companySearch
+                    : showCompanyDropdown
+                      ? ""
+                      : selectedCompanyName
+                }
+                onChange={(e) => {
+                  setCompanySearch(e.target.value);
+                  setShowCompanyDropdown(true);
+                }}
+                onFocus={() => {
+                  setShowCompanyDropdown(true);
+                }}
+                style={styles.input}
+                disabled={loadingCompanies}
+              />
+              {showCompanyDropdown && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "#fff",
+                    border: "1px solid #ddd",
+                    borderTop: "none",
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                    zIndex: 10,
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "8px",
+                      cursor: "pointer",
+                      backgroundColor: "#f9f9f9",
+                      borderBottom: "1px solid #eee",
+                    }}
+                    onClick={() => {
+                      setSelectedCompanyName("");
+                      setCompanySearch("");
+                      setShowCompanyDropdown(false);
+                    }}
+                  >
+                    -- Clear --
+                  </div>
+                  {filteredCompanies.length > 0 ? (
+                    filteredCompanies.map((comp) => (
+                      <div
+                        key={comp.id}
+                        style={{
+                          padding: "10px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #eee",
+                          backgroundColor:
+                            selectedCompanyName === comp.companyName
+                              ? "#e3f2fd"
+                              : "#fff",
+                        }}
+                        onClick={() => {
+                          setSelectedCompanyName(comp.companyName);
+                          setCompanySearch("");
+                          setShowCompanyDropdown(false);
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#f5f5f5")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            selectedCompanyName === comp.companyName
+                              ? "#e3f2fd"
+                              : "#fff")
+                        }
+                      >
+                        {comp.companyName}
+                      </div>
+                    ))
+                  ) : (
+                    <div
+                      style={{
+                        padding: "10px",
+                        color: "#999",
+                        textAlign: "center",
+                      }}
+                    >
+                      No companies found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {loadingCompanies && <Spinner size={16} />}
           </div>
           <div style={styles.fieldGroup}>
@@ -501,19 +848,103 @@ const TestRequestForm = () => {
         <div style={styles.row}>
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Lab Name *</label>
-            <select
-              value={selectedLabName}
-              onChange={(e) => setSelectedLabName(e.target.value)}
-              style={styles.input}
-              disabled={loadingLabs}
-            >
-              <option value="">-- Select Lab --</option>
-              {allLabs.map((lab) => (
-                <option key={lab.id} value={lab.labName}>
-                  {lab.labName}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: "relative" }} data-dropdown="lab">
+              <input
+                type="text"
+                placeholder="Search or select lab..."
+                value={
+                  labSearch !== ""
+                    ? labSearch
+                    : showLabDropdown
+                      ? ""
+                      : selectedLabName
+                }
+                onChange={(e) => {
+                  setLabSearch(e.target.value);
+                  setShowLabDropdown(true);
+                }}
+                onFocus={() => {
+                  setShowLabDropdown(true);
+                }}
+                style={styles.input}
+                disabled={loadingLabs}
+              />
+              {showLabDropdown && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "#fff",
+                    border: "1px solid #ddd",
+                    borderTop: "none",
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                    zIndex: 10,
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "8px",
+                      cursor: "pointer",
+                      backgroundColor: "#f9f9f9",
+                      borderBottom: "1px solid #eee",
+                    }}
+                    onClick={() => {
+                      setSelectedLabName("");
+                      setLabSearch("");
+                      setShowLabDropdown(false);
+                    }}
+                  >
+                    -- Clear --
+                  </div>
+                  {filteredLabs.length > 0 ? (
+                    filteredLabs.map((lab) => (
+                      <div
+                        key={lab.id}
+                        style={{
+                          padding: "10px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #eee",
+                          backgroundColor:
+                            selectedLabName === lab.labName
+                              ? "#e3f2fd"
+                              : "#fff",
+                        }}
+                        onClick={() => {
+                          setSelectedLabName(lab.labName);
+                          setLabSearch("");
+                          setShowLabDropdown(false);
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#f5f5f5")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            selectedLabName === lab.labName
+                              ? "#e3f2fd"
+                              : "#fff")
+                        }
+                      >
+                        {lab.labName}
+                      </div>
+                    ))
+                  ) : (
+                    <div
+                      style={{
+                        padding: "10px",
+                        color: "#999",
+                        textAlign: "center",
+                      }}
+                    >
+                      No labs found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {loadingLabs && <Spinner size={16} />}
           </div>
           <div style={styles.fieldGroup}>
@@ -543,19 +974,103 @@ const TestRequestForm = () => {
         <div style={styles.row}>
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Product Name *</label>
-            <select
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              style={styles.input}
-              disabled={loadingProducts}
-            >
-              <option value="">-- Select Product --</option>
-              {allProducts.map((prod) => (
-                <option key={prod.id} value={prod.productName}>
-                  {prod.productName}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: "relative" }} data-dropdown="product">
+              <input
+                type="text"
+                placeholder="Search or select product..."
+                value={
+                  productSearch !== ""
+                    ? productSearch
+                    : showProductDropdown
+                      ? ""
+                      : productName
+                }
+                onChange={(e) => {
+                  setProductSearch(e.target.value);
+                  setShowProductDropdown(true);
+                }}
+                onFocus={() => {
+                  setShowProductDropdown(true);
+                }}
+                style={styles.input}
+                disabled={loadingProducts}
+              />
+              {showProductDropdown && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "#fff",
+                    border: "1px solid #ddd",
+                    borderTop: "none",
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                    zIndex: 10,
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "8px",
+                      cursor: "pointer",
+                      backgroundColor: "#f9f9f9",
+                      borderBottom: "1px solid #eee",
+                    }}
+                    onClick={() => {
+                      setProductName("");
+                      setProductSearch("");
+                      setShowProductDropdown(false);
+                    }}
+                  >
+                    -- Clear --
+                  </div>
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.map((prod) => (
+                      <div
+                        key={prod.id}
+                        style={{
+                          padding: "10px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #eee",
+                          backgroundColor:
+                            productName === prod.productName
+                              ? "#e3f2fd"
+                              : "#fff",
+                        }}
+                        onClick={() => {
+                          setProductName(prod.productName);
+                          setProductSearch("");
+                          setShowProductDropdown(false);
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#f5f5f5")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            productName === prod.productName
+                              ? "#e3f2fd"
+                              : "#fff")
+                        }
+                      >
+                        {prod.productName}
+                      </div>
+                    ))
+                  ) : (
+                    <div
+                      style={{
+                        padding: "10px",
+                        color: "#999",
+                        textAlign: "center",
+                      }}
+                    >
+                      No products found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {loadingProducts && <Spinner size={16} />}
           </div>
           <div style={styles.fieldGroup}>
@@ -711,11 +1226,20 @@ const TestRequestForm = () => {
         )}
       </div>
 
-      {/* ========== ENHANCED TABLE UI ========== */}
+      {/* ========== ENHANCED TABLE UI WITH SEARCH, SORT, PAGINATION ========== */}
       <div style={styles.tableWrapper}>
         <div style={styles.tableHeader}>
           <h2 style={styles.tableTitle}>📋 Submitted Requests</h2>
-          <span style={styles.tableCount}>{trfList.length} requests</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <span style={styles.tableCount}>{trfList.length} requests</span>
+            <input
+              type="text"
+              placeholder="🔍 Search requests..."
+              value={tableSearch}
+              onChange={(e) => setTableSearch(e.target.value)}
+              style={styles.tableSearchInput}
+            />
+          </div>
         </div>
 
         {loadingTrfList ? (
@@ -731,83 +1255,97 @@ const TestRequestForm = () => {
             </p>
           </div>
         ) : (
-          <div style={styles.tableResponsive}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={{ paddingLeft: "10px" }}>ID</th>
-                  <th>Company</th>
-                  <th>Request Name</th>
-                  <th>Lab Name</th>
-                  <th>Product</th>
-                  <th>Tests</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trfList.map((trf) => {
-                  const company = companiesData.find(
-                    (c) => c.id === trf.companyId,
-                  );
-                  const product = allProducts.find(
-                    (p) => p.id === trf.productId,
-                  );
-                  const testNames = trf.selectedTests.map((t) => {
-                    const entry = Object.entries(allTestingFields).find(
-                      ([, fields]) => fields[0]?.id === t.testId,
-                    );
-                    return entry ? entry[0] : `Test_${t.testId}`;
-                  });
-                  const isDeleting = deletingId === trf.id;
-                  const isLoadingEdit = loadingEditId === trf.id;
+          <>
+            <div style={styles.tableResponsive}>
+              <table className="trf-table" style={styles.table}>
+                <thead>
+                  <tr>
+                    <th onClick={() => handleSort("trfCode")}>
+                      ID <SortIndicator field="trfCode" />
+                    </th>
+                    <th onClick={() => handleSort("companyName")}>
+                      Company <SortIndicator field="companyName" />
+                    </th>
+                    <th onClick={() => handleSort("requestName")}>
+                      Request Name <SortIndicator field="requestName" />
+                    </th>
+                    <th onClick={() => handleSort("labName")}>
+                      Lab Name <SortIndicator field="labName" />
+                    </th>
+                    <th onClick={() => handleSort("productName")}>
+                      Product <SortIndicator field="productName" />
+                    </th>
+                    <th onClick={() => handleSort("tests")}>
+                      Tests <SortIndicator field="tests" />
+                    </th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {processedTableData.data.map((trf) => {
+                    const testNames = getTestNamesForDisplay(trf);
+                    const isDeleting = deletingId === trf.id;
+                    const isLoadingEdit = loadingEditId === trf.id;
 
-                  return (
-                    <tr key={trf.id}>
-                      <td style={{ paddingLeft: "10px" }} data-label="ID">
-                        <code style={styles.badgeCode}>{trf.trfCode}</code>
-                      </td>
-                      <td data-label="Company">{trf.companyName}</td>
-                      <td data-label="Request Name">{trf.requestName}</td>
-                      <td data-label="Lab Name">{trf.labName}</td>
-                      <td data-label="Product">{trf.productName}</td>
-                      <td data-label="Tests">
-                        <div style={styles.tagsContainer}>
-                          {testNames.slice(0, 2).map((name, idx) => (
-                            <span key={idx} style={styles.testTag}>
-                              {name}
-                            </span>
-                          ))}
-                          {testNames.length > 2 && (
-                            <span style={styles.testTagMore}>
-                              +{testNames.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="Actions" style={styles.actionsCell}>
-                        <button
-                          onClick={() => loadRequestForEdit(trf)}
-                          style={styles.iconBtnEdit}
-                          disabled={isLoadingEdit || isDeleting}
-                          title="Edit request"
-                        >
-                          {isLoadingEdit ? <Spinner size={16} /> : "✏️ Edit"}
-                        </button>
-                        <button
-                          onClick={() => deleteRequest(trf.id)}
-                          style={styles.iconBtnDelete}
-                          disabled={isDeleting || isLoadingEdit}
-                          title="Delete request"
-                        >
-                          {isDeleting ? <Spinner size={16} /> : "🗑️ Delete"}
-                        </button>
+                    return (
+                      <tr key={trf.id}>
+                        <td data-label="ID" style={{ paddingLeft: "10px" }}>
+                          <code style={styles.badgeCode}>{trf.trfCode}</code>
+                        </td>
+                        <td data-label="Company">{trf.companyName}</td>
+                        <td data-label="Request Name">{trf.requestName}</td>
+                        <td data-label="Lab Name">{trf.labName}</td>
+                        <td data-label="Product">{trf.productName}</td>
+                        <td data-label="Tests">
+                          <div style={styles.tagsContainer}>
+                            {testNames.slice(0, 2).map((name, idx) => (
+                              <span key={idx} style={styles.testTag}>
+                                {name}
+                              </span>
+                            ))}
+                            {testNames.length > 2 && (
+                              <span style={styles.testTagMore}>
+                                +{testNames.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td data-label="Actions" style={styles.actionsCell}>
+                          <button
+                            onClick={() => loadRequestForEdit(trf)}
+                            style={styles.iconBtnEdit}
+                            disabled={isLoadingEdit || isDeleting}
+                            title="Edit request"
+                          >
+                            {isLoadingEdit ? <Spinner size={16} /> : "✏️ Edit"}
+                          </button>
+                          <button
+                            onClick={() => deleteRequest(trf.id)}
+                            style={styles.iconBtnDelete}
+                            disabled={isDeleting || isLoadingEdit}
+                            title="Delete request"
+                          >
+                            {isDeleting ? <Spinner size={16} /> : "🗑️ Delete"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {processedTableData.data.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan="7"
+                        style={{ textAlign: "center", padding: "2rem" }}
+                      >
+                        No matching requests found
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls />
+          </>
         )}
       </div>
     </div>
@@ -967,7 +1505,7 @@ const styles = {
   tableWrapper: {
     marginTop: "32px",
     background: "#ffffff",
-    borderRadius: "5px",
+    borderRadius: "16px",
     border: "1px solid #e2e8f0",
     overflow: "hidden",
     boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
@@ -979,6 +1517,8 @@ const styles = {
     padding: "20px 24px",
     borderBottom: "1px solid #e2e8f0",
     background: "#fafcff",
+    flexWrap: "wrap",
+    gap: "16px",
   },
   tableTitle: {
     fontSize: "1.25rem",
@@ -991,6 +1531,15 @@ const styles = {
     background: "#f1f5f9",
     padding: "4px 12px",
     borderRadius: "30px",
+  },
+  tableSearchInput: {
+    padding: "8px 16px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "40px",
+    fontSize: "0.85rem",
+    width: "240px",
+    outline: "none",
+    fontFamily: "inherit",
   },
   tableResponsive: {
     overflowX: "auto",
@@ -1077,25 +1626,73 @@ const styles = {
     marginBottom: "12px",
     opacity: 0.5,
   },
+  // Pagination styles
+  paginationContainer: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 24px",
+    borderTop: "1px solid #e2e8f0",
+    flexWrap: "wrap",
+    gap: "16px",
+    fontSize: "0.85rem",
+  },
+  itemsPerPage: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  itemsPerPageSelect: {
+    padding: "6px 10px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "8px",
+    fontSize: "0.8rem",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  paginationButtons: {
+    display: "flex",
+    gap: "6px",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  paginationBtn: {
+    background: "transparent",
+    border: "1px solid #cbd5e1",
+    borderRadius: "8px",
+    padding: "6px 12px",
+    fontSize: "0.8rem",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "all 0.2s",
+  },
+  paginationActive: {
+    background: "#0f172a",
+    color: "#ffffff",
+    borderColor: "#0f172a",
+  },
 };
 
 // Add global table hover styles
 if (typeof document !== "undefined") {
   const tableHoverStyle = document.createElement("style");
   tableHoverStyle.textContent = `
-    .lm-table tbody tr:hover {
-      background-color: #f8fafc;
-    }
-    .lm-table th, .lm-table td {
+    .trf-table th, .trf-table td {
       padding: 14px 16px;
       text-align: left;
       vertical-align: middle;
       border-bottom: 1px solid #e2e8f0;
     }
-    .lm-table th {
+    .trf-table th {
       background-color: #f8fafc;
       font-weight: 600;
       color: #1e293b;
+    }
+    .trf-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+    .trf-table th:hover {
+      background-color: #f1f5f9 !important;
     }
   `;
   document.head.appendChild(tableHoverStyle);

@@ -85,7 +85,7 @@ router.post("/logout", authMiddleware, logout);
 
 //lab routes
 router.post("/companies", allCompanies);
-router.get("/getCompanies1", getAllCompanies);
+router.get("/getCompanies", getAllCompanies);
 router.put("/companies/:id", updateCompany);
 router.delete("/companies/:id", deleteCompany);
 router.post("/labs", allLabs);
