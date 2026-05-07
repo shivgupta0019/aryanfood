@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import api from "../../api/axiosConfig";
 
 const Spinner = ({ size = 20, color = "#000000" }) => (
@@ -21,7 +21,25 @@ if (
 ) {
   const style = document.createElement("style");
   style.id = "spinner-style";
-  style.textContent = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+  style.textContent = `
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .trf-sort-indicator {
+      margin-left: 6px;
+      font-size: 0.7rem;
+      opacity: 0.6;
+    }
+    .trf-sortable-th {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    .trf-sortable-th:hover {
+      background-color: #f1f5f9 !important;
+    }
+  `;
   document.head.appendChild(style);
 }
 
@@ -282,6 +300,13 @@ const AllReports = () => {
   const [saving, setSaving] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
 
+  // ---------- TABLE PAGINATION / SORT / SEARCH ----------
+  const [tableSearch, setTableSearch] = useState("");
+  const [sortField, setSortField] = useState("submittedAt");
+  const [sortDirection, setSortDirection] = useState("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // Fetch test name → testId mapping
   useEffect(() => {
     api
@@ -303,6 +328,7 @@ const AllReports = () => {
     try {
       const response = await api.get(`/trf/submitted`);
       setTrfList(response.data);
+      setCurrentPage(1); // reset to first page on new data
     } catch (err) {
       console.error(err);
       alert("Failed to load reports");
@@ -315,6 +341,188 @@ const AllReports = () => {
   useEffect(() => {
     loadTrfs();
   }, []);
+
+  // Helper: get test names string for filtering/sorting
+  const getTestNamesString = (trf) => {
+    const names = trf.testNames || [];
+    return names.join(" ");
+  };
+
+  // Filter logic
+  const filterTableData = (data) => {
+    if (!tableSearch) return data;
+    const searchLower = tableSearch.toLowerCase();
+    return data.filter((item) => {
+      return (
+        item.trfCode?.toLowerCase().includes(searchLower) ||
+        item.companyName?.toLowerCase().includes(searchLower) ||
+        item.requestName?.toLowerCase().includes(searchLower) ||
+        item.productName?.toLowerCase().includes(searchLower) ||
+        getTestNamesString(item).toLowerCase().includes(searchLower)
+      );
+    });
+  };
+
+  // Sort logic
+  const sortTableData = (data, field, direction) => {
+    if (!field) return data;
+    return [...data].sort((a, b) => {
+      let valA, valB;
+      switch (field) {
+        case "trfCode":
+          valA = a.trfCode || "";
+          valB = b.trfCode || "";
+          break;
+        case "companyName":
+          valA = a.companyName || "";
+          valB = b.companyName || "";
+          break;
+        case "requestName":
+          valA = a.requestName || "";
+          valB = b.requestName || "";
+          break;
+        case "productName":
+          valA = a.productName || "";
+          valB = b.productName || "";
+          break;
+        case "tests":
+          valA = getTestNamesString(a);
+          valB = getTestNamesString(b);
+          break;
+        case "submittedAt":
+          valA = new Date(a.submittedAt);
+          valB = new Date(b.submittedAt);
+          break;
+        default:
+          valA = a[field] || "";
+          valB = b[field] || "";
+      }
+      if (typeof valA === "string") {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+      if (valA < valB) return direction === "asc" ? -1 : 1;
+      if (valA > valB) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // Pagination
+  const paginateData = (data, page, perPage) => {
+    const start = (page - 1) * perPage;
+    return data.slice(start, start + perPage);
+  };
+
+  // Processed data
+  const processedData = useMemo(() => {
+    const filtered = filterTableData(trfList);
+    const sorted = sortTableData(filtered, sortField, sortDirection);
+    const paginated = paginateData(sorted, currentPage, itemsPerPage);
+    return { data: paginated, total: filtered.length };
+  }, [
+    trfList,
+    tableSearch,
+    sortField,
+    sortDirection,
+    currentPage,
+    itemsPerPage,
+  ]);
+
+  // Reset page when search or per-page changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tableSearch, itemsPerPage]);
+
+  // Handle sort
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Sort indicator component
+  const SortIndicator = ({ field }) => {
+    if (sortField !== field)
+      return <span className="trf-sort-indicator"></span>;
+    return (
+      <span className="trf-sort-indicator">
+        {sortDirection === "asc" ? "↑" : "↓"}
+      </span>
+    );
+  };
+
+  // Pagination controls
+  const PaginationControls = () => {
+    const totalPages = Math.ceil(processedData.total / itemsPerPage);
+    const startItem =
+      processedData.total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, processedData.total);
+
+    return (
+      <div style={styles.paginationContainer}>
+        <div style={styles.itemsPerPage}>
+          <span>Show</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            style={styles.itemsPerPageSelect}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+          <span>entries</span>
+        </div>
+        <div>
+          Showing {startItem} to {endItem} of {processedData.total} entries
+        </div>
+        <div style={styles.paginationButtons}>
+          <button
+            style={styles.paginationBtn}
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+            return (
+              <button
+                key={pageNum}
+                style={{
+                  ...styles.paginationBtn,
+                  ...(currentPage === pageNum ? styles.paginationActive : {}),
+                }}
+                onClick={() => setCurrentPage(pageNum)}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          <button
+            style={styles.paginationBtn}
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // Start edit – open modal with loader
   const startEdit = async (trf) => {
@@ -435,7 +643,7 @@ const AllReports = () => {
 
   const getTestNames = (trf) => trf.testNames || [];
 
-  // Table renderer
+  // Table renderer with search, sort, pagination
   const renderTableContent = () => {
     if (loadingList && !refreshing) {
       return (
@@ -457,32 +665,77 @@ const AllReports = () => {
     return (
       <>
         <div style={styles.statsBar}>
-          <span>
-            ✅ Submitted forms: <strong>{trfList.length}</strong>
-          </span>
-          <button
-            onClick={() => loadTrfs(true)}
-            style={styles.refreshIconBtn}
-            disabled={refreshing}
-          >
-            {refreshing ? <Spinner size={16} /> : "🔄 Refresh"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <span>
+              ✅ Submitted forms: <strong>{trfList.length}</strong>
+            </span>
+            <button
+              onClick={() => loadTrfs(true)}
+              style={styles.refreshIconBtn}
+              disabled={refreshing}
+            >
+              {refreshing ? <Spinner size={16} /> : "🔄 Refresh"}
+            </button>
+          </div>
+          <input
+            type="text"
+            placeholder="🔍 Search reports..."
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+            style={styles.tableSearchInput}
+          />
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>TRF Code</th>
-                <th style={styles.th}>Company</th>
-                <th style={styles.th}>Request Name</th>
-                <th style={styles.th}>Product</th>
-                <th style={styles.th}>Tests</th>
-                <th style={styles.th}>Submitted At</th>
+                <th
+                  className="trf-sortable-th"
+                  onClick={() => handleSort("trfCode")}
+                  style={styles.th}
+                >
+                  TRF Code <SortIndicator field="trfCode" />
+                </th>
+                <th
+                  className="trf-sortable-th"
+                  onClick={() => handleSort("companyName")}
+                  style={styles.th}
+                >
+                  Company <SortIndicator field="companyName" />
+                </th>
+                <th
+                  className="trf-sortable-th"
+                  onClick={() => handleSort("requestName")}
+                  style={styles.th}
+                >
+                  Request Name <SortIndicator field="requestName" />
+                </th>
+                <th
+                  className="trf-sortable-th"
+                  onClick={() => handleSort("productName")}
+                  style={styles.th}
+                >
+                  Product <SortIndicator field="productName" />
+                </th>
+                <th
+                  className="trf-sortable-th"
+                  onClick={() => handleSort("tests")}
+                  style={styles.th}
+                >
+                  Tests <SortIndicator field="tests" />
+                </th>
+                <th
+                  className="trf-sortable-th"
+                  onClick={() => handleSort("submittedAt")}
+                  style={styles.th}
+                >
+                  Submitted At <SortIndicator field="submittedAt" />
+                </th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {trfList.map((trf) => (
+              {processedData.data.map((trf) => (
                 <tr key={trf.id} style={styles.tableRow}>
                   <td style={styles.td}>
                     <code style={styles.codeBadge}>{trf.trfCode}</code>
@@ -523,9 +776,20 @@ const AllReports = () => {
                   </td>
                 </tr>
               ))}
+              {processedData.data.length === 0 && (
+                <tr>
+                  <td
+                    colSpan="7"
+                    style={{ textAlign: "center", padding: "2rem" }}
+                  >
+                    No matching reports found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+        <PaginationControls />
       </>
     );
   };
@@ -533,9 +797,9 @@ const AllReports = () => {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.mainTitle}>📊All TRF Test Requests Reports </h1>
+        <h1 style={styles.mainTitle}>📊 All TRF Test Requests Reports</h1>
         <p style={styles.subtitle}>
-          View and edit finalised test requests (including custom fields).
+          View and edit finalized test requests (including custom fields).
         </p>
       </div>
       <div style={styles.tableWrapper}>{renderTableContent()}</div>
@@ -559,10 +823,10 @@ const AllReports = () => {
   );
 };
 
-// ========== Styles (same as before, plus edit button) ==========
+// ========== Styles ==========
 const styles = {
   container: {
-    maxWidth: "1280px",
+    maxWidth: "95%",
     margin: "0 auto",
     padding: "40px 24px",
     background: "#ffffff",
@@ -600,6 +864,8 @@ const styles = {
     background: "#fafcff",
     borderBottom: "1px solid #e2e8f0",
     fontSize: "0.9rem",
+    flexWrap: "wrap",
+    gap: "12px",
   },
   refreshIconBtn: {
     background: "transparent",
@@ -611,6 +877,15 @@ const styles = {
     alignItems: "center",
     gap: "6px",
     fontSize: "0.75rem",
+  },
+  tableSearchInput: {
+    padding: "8px 16px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "40px",
+    fontSize: "0.85rem",
+    width: "240px",
+    outline: "none",
+    fontFamily: "inherit",
   },
   table: {
     width: "100%",
@@ -874,6 +1149,51 @@ const styles = {
     marginTop: "8px",
     fontSize: "0.7rem",
     color: "#64748b",
+  },
+  // Pagination styles
+  paginationContainer: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 24px",
+    borderTop: "1px solid #e2e8f0",
+    flexWrap: "wrap",
+    gap: "16px",
+    fontSize: "0.85rem",
+  },
+  itemsPerPage: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  itemsPerPageSelect: {
+    padding: "6px 10px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "8px",
+    fontSize: "0.8rem",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  paginationButtons: {
+    display: "flex",
+    gap: "6px",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  paginationBtn: {
+    background: "transparent",
+    border: "1px solid #cbd5e1",
+    borderRadius: "8px",
+    padding: "6px 12px",
+    fontSize: "0.8rem",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "all 0.2s",
+  },
+  paginationActive: {
+    background: "#0f172a",
+    color: "#ffffff",
+    borderColor: "#0f172a",
   },
 };
 

@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import api from "../../api/axiosConfig";
 import { MdAddToPhotos } from "react-icons/md";
 import { MdOutlinePictureAsPdf } from "react-icons/md";
 import { IoCloseSharp } from "react-icons/io5";
 import { MdOutlineDeleteOutline } from "react-icons/md";
+
 const globalStyles = `
   * {
     margin: 0;
@@ -58,7 +59,7 @@ const globalStyles = `
   }
 
   .lm-container {
-    max-width: 1280px;
+    max-width: 95%;
     margin: 0 auto;
     padding: 2rem 2rem 3rem;
   }
@@ -386,28 +387,6 @@ const globalStyles = `
     cursor: not-allowed;
   }
 
-  .lm-info-card {
-    background: #f8fafc;
-    border-radius: 16px;
-    padding: 1rem 1.2rem;
-    margin-top: 1.5rem;
-    border: 1px solid #f1f5f9;
-    font-size: 0.85rem;
-    color: #475569;
-  }
-
-  .lm-badge {
-    display: inline-block;
-    background: #0000000c;
-    padding: 0.2rem 0.7rem;
-    border-radius: 30px;
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    color: #000000;
-    margin-left: 0.5rem;
-  }
-
   .lm-table-wrapper {
     overflow-x: auto;
     border-radius: 16px;
@@ -430,6 +409,19 @@ const globalStyles = `
     font-weight: 600;
     color: #0f172a;
     border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+  }
+
+  .lm-table th:hover {
+    background-color: #f1f5f9;
+  }
+
+  .lm-table th .sort-indicator {
+    margin-left: 0.5rem;
+    font-size: 0.7rem;
+    opacity: 0.6;
   }
 
   .lm-table td {
@@ -496,6 +488,93 @@ const globalStyles = `
   .lm-icon-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  /* Search and Pagination Styles */
+  .lm-search-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .lm-search-box {
+    padding: 0.6rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    width: 250px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .lm-search-box:focus {
+    border-color: #000000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .lm-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .lm-pagination-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .lm-pagination-btn {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+
+  .lm-pagination-btn:hover:not(:disabled) {
+    border-color: #000000;
+    background: #f8fafc;
+  }
+
+  .lm-pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .lm-pagination-active {
+    background: #000000;
+    color: #ffffff;
+    border-color: #000000;
+  }
+
+  .lm-pagination-active:hover:not(:disabled) {
+    background: #1e293b;
+  }
+
+  .lm-items-per-page {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .lm-items-per-page select {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
   }
 
   /* Modal Styles */
@@ -583,6 +662,17 @@ const globalStyles = `
     .lm-table td {
       padding: 0.75rem;
     }
+    .lm-search-container {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .lm-search-box {
+      width: 100%;
+    }
+    .lm-pagination {
+      flex-direction: column;
+      align-items: center;
+    }
   }
 `;
 
@@ -643,6 +733,13 @@ export default function LabManagement() {
   const [companyDeleteLoading, setCompanyDeleteLoading] = useState(null);
   const [companyEditSaveLoading, setCompanyEditSaveLoading] = useState(false);
 
+  // Company table pagination/sort/search
+  const [companySearch, setCompanySearch] = useState("");
+  const [companySortField, setCompanySortField] = useState("savedAt");
+  const [companySortDirection, setCompanySortDirection] = useState("desc");
+  const [companyCurrentPage, setCompanyCurrentPage] = useState(1);
+  const [companyItemsPerPage, setCompanyItemsPerPage] = useState(10);
+
   // ---------- Lab State ----------
   const [labData, setLabData] = useState({
     labName: "",
@@ -660,6 +757,13 @@ export default function LabManagement() {
   const [labDeleteLoading, setLabDeleteLoading] = useState(null);
   const [labEditSaveLoading, setLabEditSaveLoading] = useState(false);
 
+  // Lab table pagination/sort/search
+  const [labSearch, setLabSearch] = useState("");
+  const [labSortField, setLabSortField] = useState("savedAt");
+  const [labSortDirection, setLabSortDirection] = useState("desc");
+  const [labCurrentPage, setLabCurrentPage] = useState(1);
+  const [labItemsPerPage, setLabItemsPerPage] = useState(10);
+
   // ---------- Product State (with PDF) ----------
   const [productData, setProductData] = useState({ productName: "" });
   const [savedProducts, setSavedProducts] = useState([]);
@@ -672,6 +776,13 @@ export default function LabManagement() {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [currentPdfUrl, setCurrentPdfUrl] = useState("");
   const [currentPdfName, setCurrentPdfName] = useState("");
+
+  // Product table pagination/sort/search
+  const [productSearch, setProductSearch] = useState("");
+  const [productSortField, setProductSortField] = useState("savedAt");
+  const [productSortDirection, setProductSortDirection] = useState("desc");
+  const [productCurrentPage, setProductCurrentPage] = useState(1);
+  const [productItemsPerPage, setProductItemsPerPage] = useState(10);
 
   // ---------- Testing State ----------
   const [availableTests, setAvailableTests] = useState([]);
@@ -687,11 +798,17 @@ export default function LabManagement() {
   const [testFetchLoading, setTestFetchLoading] = useState(false);
   const [testCreateLoading, setTestCreateLoading] = useState(false);
 
+  // Testing table pagination/sort/search
+  const [testingSearch, setTestingSearch] = useState("");
+  const [testingSortField, setTestingSortField] = useState("savedAt");
+  const [testingSortDirection, setTestingSortDirection] = useState("desc");
+  const [testingCurrentPage, setTestingCurrentPage] = useState(1);
+  const [testingItemsPerPage, setTestingItemsPerPage] = useState(10);
+
   // Helper to get full PDF URL without /api prefix
   const getPdfFullUrl = (relativePath) => {
     if (!relativePath) return null;
     if (relativePath.startsWith("http")) return relativePath;
-    // Extract backend origin from axios baseURL (e.g., http://localhost:5000/api -> http://localhost:5000)
     const backendBase =
       api.defaults.baseURL?.replace(/\/api$/, "") || "http://localhost:5000";
     const cleanBase = backendBase.replace(/\/$/, "");
@@ -745,6 +862,7 @@ export default function LabManagement() {
         phone: "",
         adminName: "",
       });
+      setCompanyCurrentPage(1);
     } catch (error) {
       console.error("Error saving company:", error);
       const errorMsg = error.response?.data?.error || "Failed to save company.";
@@ -849,6 +967,7 @@ export default function LabManagement() {
         adminName: "",
         labType: "",
       });
+      setLabCurrentPage(1);
     } catch (error) {
       console.error("Error saving lab:", error);
       alert(error.response?.data?.error || "Failed to save lab.");
@@ -936,6 +1055,7 @@ export default function LabManagement() {
         setSavedProducts(response.data.allProducts);
         alert("Product saved successfully!");
         setProductData({ productName: "" });
+        setProductCurrentPage(1);
       }
     } catch (error) {
       console.error("Error saving product:", error);
@@ -1142,6 +1262,7 @@ export default function LabManagement() {
     alert(`Saved ${selectedTestsData.length} test(s).`);
     setSelectedTestIds([]);
     setTestValues({});
+    setTestingCurrentPage(1);
   };
 
   const startEditTest = (entry) => {
@@ -1184,6 +1305,197 @@ export default function LabManagement() {
     fetchAllTests();
   }, []);
 
+  // Reset editing when search/sort/page changes for each table
+  useEffect(() => {
+    setEditingCompanyId(null);
+    setEditingCompanyData(null);
+    setCompanyCurrentPage(1);
+  }, [
+    companySearch,
+    companySortField,
+    companySortDirection,
+    companyItemsPerPage,
+  ]);
+
+  useEffect(() => {
+    setEditingLabId(null);
+    setEditingLabData(null);
+    setLabCurrentPage(1);
+  }, [labSearch, labSortField, labSortDirection, labItemsPerPage]);
+
+  useEffect(() => {
+    setProductCurrentPage(1);
+  }, [
+    productSearch,
+    productSortField,
+    productSortDirection,
+    productItemsPerPage,
+  ]);
+
+  useEffect(() => {
+    setTestingCurrentPage(1);
+  }, [
+    testingSearch,
+    testingSortField,
+    testingSortDirection,
+    testingItemsPerPage,
+  ]);
+
+  // Sorting and filtering functions
+  const sortData = (data, field, direction) => {
+    if (!field) return data;
+    return [...data].sort((a, b) => {
+      let valA = a[field];
+      let valB = b[field];
+
+      // Handle special cases
+      if (field === "savedAt") {
+        valA = new Date(a.savedAt);
+        valB = new Date(b.savedAt);
+      } else if (field === "labType") {
+        valA = a.labType === "internal" ? 0 : 1;
+        valB = b.labType === "internal" ? 0 : 1;
+      } else if (field === "tests") {
+        valA = JSON.stringify(a.tests);
+        valB = JSON.stringify(b.tests);
+      }
+
+      // Handle null/undefined values
+      if (valA == null) valA = "";
+      if (valB == null) valB = "";
+
+      if (typeof valA === "string") {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA < valB) return direction === "asc" ? -1 : 1;
+      if (valA > valB) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const filterCompanies = (companies) => {
+    if (!companySearch) return companies;
+    const searchLower = companySearch.toLowerCase();
+    return companies.filter(
+      (comp) =>
+        comp.companyName?.toLowerCase().includes(searchLower) ||
+        comp.companyCode?.toLowerCase().includes(searchLower) ||
+        comp.gst?.toLowerCase().includes(searchLower) ||
+        comp.phone?.toLowerCase().includes(searchLower) ||
+        comp.adminName?.toLowerCase().includes(searchLower) ||
+        comp.address?.toLowerCase().includes(searchLower),
+    );
+  };
+
+  const filterLabs = (labs) => {
+    if (!labSearch) return labs;
+    const searchLower = labSearch.toLowerCase();
+    return labs.filter(
+      (lab) =>
+        lab.labName?.toLowerCase().includes(searchLower) ||
+        lab.labCode?.toLowerCase().includes(searchLower) ||
+        lab.gst?.toLowerCase().includes(searchLower) ||
+        lab.phone?.toLowerCase().includes(searchLower) ||
+        lab.adminName?.toLowerCase().includes(searchLower) ||
+        lab.address?.toLowerCase().includes(searchLower) ||
+        lab.labType?.toLowerCase().includes(searchLower),
+    );
+  };
+
+  const filterProducts = (products) => {
+    if (!productSearch) return products;
+    const searchLower = productSearch.toLowerCase();
+    return products.filter(
+      (prod) =>
+        prod.productName?.toLowerCase().includes(searchLower) ||
+        prod.productId?.toLowerCase().includes(searchLower),
+    );
+  };
+
+  const filterTests = (tests) => {
+    if (!testingSearch) return tests;
+    const searchLower = testingSearch.toLowerCase();
+    return tests.filter(
+      (test) =>
+        JSON.stringify(test.tests).toLowerCase().includes(searchLower) ||
+        test.savedAt?.toLowerCase().includes(searchLower),
+    );
+  };
+
+  // Pagination helper
+  const paginateData = (data, page, itemsPerPage) => {
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return data.slice(start, end);
+  };
+
+  // Processed data for each table
+  const processedCompanies = useMemo(() => {
+    const filtered = filterCompanies(savedCompanies);
+    const sorted = sortData(filtered, companySortField, companySortDirection);
+    return {
+      data: paginateData(sorted, companyCurrentPage, companyItemsPerPage),
+      total: filtered.length,
+    };
+  }, [
+    savedCompanies,
+    companySearch,
+    companySortField,
+    companySortDirection,
+    companyCurrentPage,
+    companyItemsPerPage,
+  ]);
+
+  const processedLabs = useMemo(() => {
+    const filtered = filterLabs(savedLabs);
+    const sorted = sortData(filtered, labSortField, labSortDirection);
+    return {
+      data: paginateData(sorted, labCurrentPage, labItemsPerPage),
+      total: filtered.length,
+    };
+  }, [
+    savedLabs,
+    labSearch,
+    labSortField,
+    labSortDirection,
+    labCurrentPage,
+    labItemsPerPage,
+  ]);
+
+  const processedProducts = useMemo(() => {
+    const filtered = filterProducts(savedProducts);
+    const sorted = sortData(filtered, productSortField, productSortDirection);
+    return {
+      data: paginateData(sorted, productCurrentPage, productItemsPerPage),
+      total: filtered.length,
+    };
+  }, [
+    savedProducts,
+    productSearch,
+    productSortField,
+    productSortDirection,
+    productCurrentPage,
+    productItemsPerPage,
+  ]);
+
+  const processedTests = useMemo(() => {
+    const filtered = filterTests(savedTests);
+    const sorted = sortData(filtered, testingSortField, testingSortDirection);
+    return {
+      data: paginateData(sorted, testingCurrentPage, testingItemsPerPage),
+      total: filtered.length,
+    };
+  }, [
+    savedTests,
+    testingSearch,
+    testingSortField,
+    testingSortDirection,
+    testingCurrentPage,
+    testingItemsPerPage,
+  ]);
+
   const renderTableLoader = () => (
     <tr>
       <td colSpan={10} className="lm-loader-container">
@@ -1194,8 +1506,6 @@ export default function LabManagement() {
 
   const openPdfModal = (pdfPath, productName) => {
     const fullUrl = getPdfFullUrl(pdfPath);
-    console.log("fullUrl", fullUrl);
-
     setCurrentPdfUrl(fullUrl);
     setCurrentPdfName(productName || "PDF Document");
     setPdfModalOpen(true);
@@ -1205,6 +1515,139 @@ export default function LabManagement() {
     setPdfModalOpen(false);
     setCurrentPdfUrl("");
     setCurrentPdfName("");
+  };
+
+  // Helper to render sort indicator
+  const SortIndicator = ({ field }) => {
+    let isActive = false;
+    let direction = "asc";
+    if (activeTab === "company") {
+      isActive = companySortField === field;
+      direction = companySortDirection;
+    } else if (activeTab === "lab") {
+      isActive = labSortField === field;
+      direction = labSortDirection;
+    } else if (activeTab === "product") {
+      isActive = productSortField === field;
+      direction = productSortDirection;
+    } else if (activeTab === "testing") {
+      isActive = testingSortField === field;
+      direction = testingSortDirection;
+    }
+    if (!isActive) return <span className="sort-indicator"></span>;
+    return (
+      <span className="sort-indicator">{direction === "asc" ? "↑" : "↓"}</span>
+    );
+  };
+
+  const handleSort = (field) => {
+    if (activeTab === "company") {
+      if (companySortField === field) {
+        setCompanySortDirection(
+          companySortDirection === "asc" ? "desc" : "asc",
+        );
+      } else {
+        setCompanySortField(field);
+        setCompanySortDirection("asc");
+      }
+    } else if (activeTab === "lab") {
+      if (labSortField === field) {
+        setLabSortDirection(labSortDirection === "asc" ? "desc" : "asc");
+      } else {
+        setLabSortField(field);
+        setLabSortDirection("asc");
+      }
+    } else if (activeTab === "product") {
+      if (productSortField === field) {
+        setProductSortDirection(
+          productSortDirection === "asc" ? "desc" : "asc",
+        );
+      } else {
+        setProductSortField(field);
+        setProductSortDirection("asc");
+      }
+    } else if (activeTab === "testing") {
+      if (testingSortField === field) {
+        setTestingSortDirection(
+          testingSortDirection === "asc" ? "desc" : "asc",
+        );
+      } else {
+        setTestingSortField(field);
+        setTestingSortDirection("asc");
+      }
+    }
+  };
+
+  // Pagination controls component
+  const PaginationControls = ({
+    currentPage,
+    totalItems,
+    itemsPerPage,
+    onPageChange,
+    onItemsPerPageChange,
+  }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startItem =
+      totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    return (
+      <div className="lm-pagination">
+        <div className="lm-items-per-page">
+          <span>Show</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+          <span>entries</span>
+        </div>
+        <div>
+          Showing {startItem} to {endItem} of {totalItems} entries
+        </div>
+        <div className="lm-pagination-controls">
+          <button
+            className="lm-pagination-btn"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+            return (
+              <button
+                key={pageNum}
+                className={`lm-pagination-btn ${currentPage === pageNum ? "lm-pagination-active" : ""}`}
+                onClick={() => onPageChange(pageNum)}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          <button
+            className="lm-pagination-btn"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1341,24 +1784,49 @@ export default function LabManagement() {
                   Save Company
                 </button>
               </div>
+
+              <div className="lm-search-container">
+                <input
+                  type="text"
+                  className="lm-search-box"
+                  placeholder="Search companies..."
+                  value={companySearch}
+                  onChange={(e) => setCompanySearch(e.target.value)}
+                />
+              </div>
+
               <div className="lm-table-wrapper">
                 <table className="lm-table">
                   <thead>
                     <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th>GST</th>
-                      <th>Phone</th>
-                      <th>Admin</th>
-                      <th>Address</th>
-                      <th>Saved At</th>
+                      <th onClick={() => handleSort("companyCode")}>
+                        Code <SortIndicator field="companyCode" />
+                      </th>
+                      <th onClick={() => handleSort("companyName")}>
+                        Name <SortIndicator field="companyName" />
+                      </th>
+                      <th onClick={() => handleSort("gst")}>
+                        GST <SortIndicator field="gst" />
+                      </th>
+                      <th onClick={() => handleSort("phone")}>
+                        Phone <SortIndicator field="phone" />
+                      </th>
+                      <th onClick={() => handleSort("adminName")}>
+                        Admin <SortIndicator field="adminName" />
+                      </th>
+                      <th onClick={() => handleSort("address")}>
+                        Address <SortIndicator field="address" />
+                      </th>
+                      <th onClick={() => handleSort("savedAt")}>
+                        Saved At <SortIndicator field="savedAt" />
+                      </th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {companyFetchLoading
                       ? renderTableLoader()
-                      : savedCompanies.map((comp) => (
+                      : processedCompanies.data.map((comp) => (
                           <tr key={comp.id}>
                             {editingCompanyId === comp.id ? (
                               <>
@@ -1488,9 +1956,28 @@ export default function LabManagement() {
                             )}
                           </tr>
                         ))}
+                    {!companyFetchLoading &&
+                      processedCompanies.data.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan="8"
+                            style={{ textAlign: "center", padding: "2rem" }}
+                          >
+                            No companies found
+                          </td>
+                        </tr>
+                      )}
                   </tbody>
                 </table>
               </div>
+
+              <PaginationControls
+                currentPage={companyCurrentPage}
+                totalItems={processedCompanies.total}
+                itemsPerPage={companyItemsPerPage}
+                onPageChange={setCompanyCurrentPage}
+                onItemsPerPageChange={setCompanyItemsPerPage}
+              />
             </div>
           )}
 
@@ -1601,25 +2088,52 @@ export default function LabManagement() {
                   Save Lab
                 </button>
               </div>
+
+              <div className="lm-search-container">
+                <input
+                  type="text"
+                  className="lm-search-box"
+                  placeholder="Search labs..."
+                  value={labSearch}
+                  onChange={(e) => setLabSearch(e.target.value)}
+                />
+              </div>
+
               <div className="lm-table-wrapper">
                 <table className="lm-table">
                   <thead>
                     <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th>GST</th>
-                      <th>Phone</th>
-                      <th>Admin</th>
-                      <th>Type</th>
-                      <th>Address</th>
-                      <th>Saved At</th>
+                      <th onClick={() => handleSort("labCode")}>
+                        Code <SortIndicator field="labCode" />
+                      </th>
+                      <th onClick={() => handleSort("labName")}>
+                        Name <SortIndicator field="labName" />
+                      </th>
+                      <th onClick={() => handleSort("gst")}>
+                        GST <SortIndicator field="gst" />
+                      </th>
+                      <th onClick={() => handleSort("phone")}>
+                        Phone <SortIndicator field="phone" />
+                      </th>
+                      <th onClick={() => handleSort("adminName")}>
+                        Admin <SortIndicator field="adminName" />
+                      </th>
+                      <th onClick={() => handleSort("labType")}>
+                        Type <SortIndicator field="labType" />
+                      </th>
+                      <th onClick={() => handleSort("address")}>
+                        Address <SortIndicator field="address" />
+                      </th>
+                      <th onClick={() => handleSort("savedAt")}>
+                        Saved At <SortIndicator field="savedAt" />
+                      </th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {labFetchLoading
                       ? renderTableLoader()
-                      : savedLabs.map((lab) => (
+                      : processedLabs.data.map((lab) => (
                           <tr key={lab.id}>
                             {editingLabId === lab.id ? (
                               <>
@@ -1772,9 +2286,27 @@ export default function LabManagement() {
                             )}
                           </tr>
                         ))}
+                    {!labFetchLoading && processedLabs.data.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan="9"
+                          style={{ textAlign: "center", padding: "2rem" }}
+                        >
+                          No labs found
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
+
+              <PaginationControls
+                currentPage={labCurrentPage}
+                totalItems={processedLabs.total}
+                itemsPerPage={labItemsPerPage}
+                onPageChange={setLabCurrentPage}
+                onItemsPerPageChange={setLabItemsPerPage}
+              />
             </div>
           )}
 
@@ -1811,21 +2343,38 @@ export default function LabManagement() {
                   Save Product
                 </button>
               </div>
+
+              <div className="lm-search-container">
+                <input
+                  type="text"
+                  className="lm-search-box"
+                  placeholder="Search products..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                />
+              </div>
+
               <div className="lm-table-wrapper">
                 <table className="lm-table">
                   <thead>
                     <tr>
-                      <th>Product Name</th>
-                      <th>Product ID</th>
+                      <th onClick={() => handleSort("productName")}>
+                        Product Name <SortIndicator field="productName" />
+                      </th>
+                      <th onClick={() => handleSort("productId")}>
+                        Product ID <SortIndicator field="productId" />
+                      </th>
                       <th>PDF Document</th>
-                      <th>Saved At</th>
+                      <th onClick={() => handleSort("savedAt")}>
+                        Saved At <SortIndicator field="savedAt" />
+                      </th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productFetchLoading
                       ? renderTableLoader()
-                      : savedProducts.map((prod) => (
+                      : processedProducts.data.map((prod) => (
                           <tr key={prod.id}>
                             <td>{prod.productName}</td>
                             <td>{prod.productId}</td>
@@ -1852,11 +2401,7 @@ export default function LabManagement() {
                                     style={{ color: "#dc2626" }}
                                   >
                                     {pdfDeleteLoading === prod.id ? (
-                                      <CircularLoader
-                                        size="sm"
-                                        inline
-                                        size={25}
-                                      />
+                                      <CircularLoader size="sm" inline />
                                     ) : (
                                       <MdOutlineDeleteOutline size={25} />
                                     )}
@@ -1882,11 +2427,7 @@ export default function LabManagement() {
                                   disabled={pdfUploadLoading === prod.id}
                                 >
                                   {pdfUploadLoading === prod.id ? (
-                                    <CircularLoader
-                                      size="sm"
-                                      inline
-                                      size={25}
-                                    />
+                                    <CircularLoader size="sm" inline />
                                   ) : (
                                     <MdAddToPhotos size={25} />
                                   )}
@@ -1910,9 +2451,28 @@ export default function LabManagement() {
                             </td>
                           </tr>
                         ))}
+                    {!productFetchLoading &&
+                      processedProducts.data.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan="5"
+                            style={{ textAlign: "center", padding: "2rem" }}
+                          >
+                            No products found
+                          </td>
+                        </tr>
+                      )}
                   </tbody>
                 </table>
               </div>
+
+              <PaginationControls
+                currentPage={productCurrentPage}
+                totalItems={processedProducts.total}
+                itemsPerPage={productItemsPerPage}
+                onPageChange={setProductCurrentPage}
+                onItemsPerPageChange={setProductItemsPerPage}
+              />
             </div>
           )}
 
@@ -2080,108 +2640,138 @@ export default function LabManagement() {
               </div>
 
               {savedTests.length > 0 && (
-                <div className="lm-table-wrapper">
-                  <table className="lm-table">
-                    <thead>
-                      <tr>
-                        <th>Saved At</th>
-                        <th>Test(s) & Values</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {savedTests.map((entry) => (
-                        <tr key={entry.id}>
-                          <td style={{ whiteSpace: "nowrap" }}>
-                            {entry.savedAt}
-                          </td>
-                          <td>
-                            {editingTestId === entry.id
-                              ? editingTestData.tests.map((test, ti) => (
-                                  <div
-                                    key={ti}
-                                    style={{ marginBottom: "1rem" }}
-                                  >
-                                    <strong>{test.testLabel}</strong>
-                                    <ul className="lm-test-fields-preview">
-                                      {test.fields.map((field, fi) => (
-                                        <li key={fi}>
-                                          {field.label}:{" "}
-                                          <input
-                                            className="lm-editable-input"
-                                            style={{
-                                              width: "auto",
-                                              display: "inline-block",
-                                              marginLeft: "0.5rem",
-                                            }}
-                                            value={field.value}
-                                            onChange={(e) =>
-                                              updateEditingTestField(
-                                                ti,
-                                                fi,
-                                                e.target.value,
-                                              )
-                                            }
-                                          />
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                ))
-                              : entry.tests.map((test, idx) => (
-                                  <div
-                                    key={idx}
-                                    style={{ marginBottom: "0.75rem" }}
-                                  >
-                                    <strong>{test.testLabel}</strong>
-                                    <ul className="lm-test-fields-preview">
-                                      {test.fields.map((field, fidx) => (
-                                        <li key={fidx}>
-                                          {field.label}: {field.value || "—"}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                ))}
-                          </td>
-                          <td className="lm-action-buttons">
-                            {editingTestId === entry.id ? (
-                              <>
-                                <button
-                                  className="lm-icon-btn"
-                                  onClick={saveEditTest}
-                                >
-                                  💾
-                                </button>
-                                <button
-                                  className="lm-icon-btn"
-                                  onClick={cancelEditTest}
-                                >
-                                  ✖️
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  className="lm-icon-btn"
-                                  onClick={() => startEditTest(entry)}
-                                >
-                                  ✏️
-                                </button>
-                                <button
-                                  className="lm-icon-btn"
-                                  onClick={() => deleteTestEntry(entry.id)}
-                                >
-                                  🗑️
-                                </button>
-                              </>
-                            )}
-                          </td>
+                <>
+                  <div className="lm-search-container">
+                    <input
+                      type="text"
+                      className="lm-search-box"
+                      placeholder="Search saved tests..."
+                      value={testingSearch}
+                      onChange={(e) => setTestingSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="lm-table-wrapper">
+                    <table className="lm-table">
+                      <thead>
+                        <tr>
+                          <th onClick={() => handleSort("savedAt")}>
+                            Saved At <SortIndicator field="savedAt" />
+                          </th>
+                          <th>Test(s) & Values</th>
+                          <th>Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {processedTests.data.map((entry) => (
+                          <tr key={entry.id}>
+                            <td style={{ whiteSpace: "nowrap" }}>
+                              {entry.savedAt}
+                            </td>
+                            <td>
+                              {editingTestId === entry.id
+                                ? editingTestData.tests.map((test, ti) => (
+                                    <div
+                                      key={ti}
+                                      style={{ marginBottom: "1rem" }}
+                                    >
+                                      <strong>{test.testLabel}</strong>
+                                      <ul className="lm-test-fields-preview">
+                                        {test.fields.map((field, fi) => (
+                                          <li key={fi}>
+                                            {field.label}:{" "}
+                                            <input
+                                              className="lm-editable-input"
+                                              style={{
+                                                width: "auto",
+                                                display: "inline-block",
+                                                marginLeft: "0.5rem",
+                                              }}
+                                              value={field.value}
+                                              onChange={(e) =>
+                                                updateEditingTestField(
+                                                  ti,
+                                                  fi,
+                                                  e.target.value,
+                                                )
+                                              }
+                                            />
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  ))
+                                : entry.tests.map((test, idx) => (
+                                    <div
+                                      key={idx}
+                                      style={{ marginBottom: "0.75rem" }}
+                                    >
+                                      <strong>{test.testLabel}</strong>
+                                      <ul className="lm-test-fields-preview">
+                                        {test.fields.map((field, fidx) => (
+                                          <li key={fidx}>
+                                            {field.label}: {field.value || "—"}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  ))}
+                            </td>
+                            <td className="lm-action-buttons">
+                              {editingTestId === entry.id ? (
+                                <>
+                                  <button
+                                    className="lm-icon-btn"
+                                    onClick={saveEditTest}
+                                  >
+                                    💾
+                                  </button>
+                                  <button
+                                    className="lm-icon-btn"
+                                    onClick={cancelEditTest}
+                                  >
+                                    ✖️
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="lm-icon-btn"
+                                    onClick={() => startEditTest(entry)}
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    className="lm-icon-btn"
+                                    onClick={() => deleteTestEntry(entry.id)}
+                                  >
+                                    🗑️
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {processedTests.data.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan="3"
+                              style={{ textAlign: "center", padding: "2rem" }}
+                            >
+                              No saved tests found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <PaginationControls
+                    currentPage={testingCurrentPage}
+                    totalItems={processedTests.total}
+                    itemsPerPage={testingItemsPerPage}
+                    onPageChange={setTestingCurrentPage}
+                    onItemsPerPageChange={setTestingItemsPerPage}
+                  />
+                </>
               )}
             </div>
           )}
