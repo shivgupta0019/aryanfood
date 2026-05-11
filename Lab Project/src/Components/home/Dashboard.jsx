@@ -11,7 +11,7 @@ import {
   FaListAlt,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../../api/axiosConfig";
+import api, { baseURL } from "../../api/axiosConfig";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -89,7 +89,7 @@ export default function Dashboard() {
       try {
         const token = localStorage.getItem("token");
 
-          const res = await api.get("/profile", {
+        const res = await api.get("/profile", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -259,21 +259,21 @@ export default function Dashboard() {
                 userSelect: "none",
               }}
             >
-           {profile.photo ? (
-  <img
-    src={`http://localhost:5000${profile.photo}`}
-    alt="avatar"
-    style={{
-      width: "35px",
-      height: "35px",
-      borderRadius: "50%",
-      objectFit: "cover",
-      border: "2px solid #185fa5",
-    }}
-  />
-) : (
-  <FaUserCircle style={{ fontSize: "35px", color: "#555" }} />
-)}
+              {profile.photo ? (
+                <img
+                  src={`${baseURL}${profile.photo}`}
+                  alt="avatar"
+                  style={{
+                    width: "35px",
+                    height: "35px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid #185fa5",
+                  }}
+                />
+              ) : (
+                <FaUserCircle style={{ fontSize: "35px", color: "#555" }} />
+              )}
               <div
                 style={{
                   display: "flex",
