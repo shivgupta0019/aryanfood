@@ -8,6 +8,64 @@ const { dbConfig } = require("../config/db");
 // Helper to fetch all products including PDF fields
 async function getAllProductsWithPdf(connection) {
   const sql = `
+    SELECT 
+      p.id, p.product_name, p.product_id, p.pdf_path, p.pdf_original_name,
+      p.created_at, p.updated_at,
+      ptr.test_id, ptr.field_id, ptr.min_value, ptr.max_value, ptr.unit,
+      t.test_name,
+      tf.field_name, tf.label
+    FROM product p
+    LEFT JOIN product_test_ranges ptr ON p.id = ptr.product_id
+    LEFT JOIN tests t ON ptr.test_id = t.id
+    LEFT JOIN test_fields tf ON ptr.field_id = tf.id
+    ORDER BY p.id DESC
+  `;
+  const result = await connection.execute(sql, [], {
+    outFormat: oracledb.OUT_FORMAT_OBJECT,
+  });
+
+  const productsMap = new Map();
+  for (const row of result.rows) {
+    const id = row.ID;
+    if (!productsMap.has(id)) {
+      productsMap.set(id, {
+        id: row.ID,
+        productName: row.PRODUCT_NAME,
+        productId: row.PRODUCT_ID,
+        pdf_path: row.PDF_PATH,
+        pdf_original_name: row.PDF_ORIGINAL_NAME,
+        savedAt: row.UPDATED_AT || row.CREATED_AT,
+        testRanges: [],
+      });
+    }
+    const product = productsMap.get(id);
+    if (row.TEST_ID) {
+      // find or create test entry
+      let testEntry = product.testRanges.find(
+        (tr) => tr.testId === row.TEST_ID,
+      );
+      if (!testEntry) {
+        testEntry = {
+          testId: row.TEST_ID,
+          testName: row.TEST_NAME,
+          fields: [],
+        };
+        product.testRanges.push(testEntry);
+      }
+      testEntry.fields.push({
+        fieldId: row.FIELD_ID,
+        fieldName: row.FIELD_NAME,
+        label: row.LABEL,
+        minValue: row.MIN_VALUE,
+        maxValue: row.MAX_VALUE,
+        unit: row.UNIT,
+      });
+    }
+  }
+  return Array.from(productsMap.values());
+}
+async function getAllProductsWithPdf_1(connection) {
+  const sql = `
         SELECT id, product_name, product_id, pdf_path, pdf_original_name,
                COALESCE(updated_at, created_at) AS savedAt
         FROM product
@@ -25,6 +83,50 @@ async function getAllProductsWithPdf(connection) {
     savedAt: row.SAVEDAT,
   }));
 }
+exports.updateProductRanges = async (req, res) => {
+  const productId = parseInt(req.params.id, 10);
+  const { testRanges } = req.body;
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+    await connection.execute(
+      `DELETE FROM product_test_ranges WHERE product_id = :id`,
+      [productId],
+      { autoCommit: false },
+    );
+
+    if (testRanges && Array.isArray(testRanges)) {
+      for (const tr of testRanges) {
+        const testId = tr.testId;
+        const fields = tr.fields || [];
+        for (const f of fields) {
+          await connection.execute(
+            `INSERT INTO product_test_ranges (product_id, test_id, field_id, min_value, max_value, unit)
+             VALUES (:pid, :tid, :fid, :minv, :maxv, :unit)`,
+            {
+              pid: productId,
+              tid: testId,
+              fid: f.fieldId,
+              minv: f.minValue || null,
+              maxv: f.maxValue || null,
+              unit: f.unit || null,
+            },
+            { autoCommit: false },
+          );
+        }
+      }
+    }
+    await connection.commit();
+    const allProducts = await getAllProductsWithPdf(connection);
+    res.status(200).json({ message: "Ranges updated", allProducts });
+  } catch (err) {
+    console.error(err);
+    if (connection) await connection.rollback();
+    res.status(500).json({ error: "Failed to update ranges" });
+  } finally {
+    if (connection) await connection.close();
+  }
+};
 // Testing Table CRUD Oprations
 exports.createTest = async (req, res) => {
   let connection;
@@ -276,7 +378,7 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-exports.createProducts = async (req, res) => {
+exports.createProducts_1 = async (req, res) => {
   const { productName, productId } = req.body;
 
   if (!productName || !productName.trim()) {
@@ -348,7 +450,89 @@ exports.createProducts = async (req, res) => {
     if (connection) await connection.close();
   }
 };
+exports.createProducts = async (req, res) => {
+  const { productName, productId, testRanges } = req.body; // added testRanges
 
+  if (!productName || !productName.trim()) {
+    return res.status(400).json({ error: "Product Name is required." });
+  }
+  if (!productId || !productId.trim()) {
+    return res.status(400).json({ error: "Product ID is required." });
+  }
+
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+    await connection.execute(`BEGIN NULL; END;`, [], { autoCommit: false }); // start transaction
+
+    // Insert product
+    const insertSql = `
+      INSERT INTO product (product_name, product_id)
+      VALUES (:productName, :productId)
+      RETURNING id, created_at INTO :outId, :outCreatedAt
+    `;
+    const result = await connection.execute(
+      insertSql,
+      {
+        productName: productName.trim(),
+        productId: productId.trim(),
+        outId: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+        outCreatedAt: { dir: oracledb.BIND_OUT, type: oracledb.DATE },
+      },
+      { autoCommit: false },
+    );
+    const newProductId = result.outBinds.outId[0];
+
+    // Insert test ranges if provided
+    if (testRanges && Array.isArray(testRanges)) {
+      for (const tr of testRanges) {
+        const testId = tr.testId;
+        const fields = tr.fields || [];
+        for (const f of fields) {
+          await connection.execute(
+            `INSERT INTO product_test_ranges (product_id, test_id, field_id, min_value, max_value, unit)
+             VALUES (:product_id, :test_id, :field_id, :min_value, :max_value, :unit)`,
+            {
+              product_id: newProductId,
+              test_id: testId,
+              field_id: f.fieldId,
+              min_value: f.minValue || null,
+              max_value: f.maxValue || null,
+              unit: f.unit || null,
+            },
+            { autoCommit: false },
+          );
+        }
+      }
+    }
+
+    await connection.commit();
+
+    // Fetch all products with ranges (reuse helper)
+    const allProducts = await getAllProductsWithPdf(connection);
+
+    res.status(201).json({
+      message: "Product saved successfully",
+      newProduct: {
+        id: newProductId,
+        productName: productName.trim(),
+        productId: productId.trim(),
+        savedAt: result.outBinds.outCreatedAt[0]
+          ? new Date(result.outBinds.outCreatedAt[0]).toLocaleString()
+          : new Date().toLocaleString(),
+      },
+      allProducts,
+    });
+  } catch (err) {
+    console.error("Error saving product:", err);
+    if (connection) await connection.rollback();
+    if (err.errorNum === 1)
+      return res.status(409).json({ error: "Product ID already exists." });
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    if (connection) await connection.close();
+  }
+};
 // Lab Table CRUD Oprations
 exports.deleteLab = async (req, res) => {
   const labId = parseInt(req.params.id, 10);
@@ -659,7 +843,79 @@ exports.allLabs = async (req, res) => {
 };
 
 // Company Table CRUD Oprations
+
 exports.deleteCompany = async (req, res) => {
+  const companyId = parseInt(req.params.id, 10);
+
+  // Validate ID
+  if (isNaN(companyId)) {
+    return res.status(400).json({ error: "Invalid company ID." });
+  }
+
+  let connection;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+
+    // ✅ Fix: use object for named bind parameter
+    const deleteSql = `DELETE FROM company WHERE id = :id`;
+    const result = await connection.execute(
+      deleteSql,
+      { id: companyId },
+      { autoCommit: true },
+    );
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: "Company not found." });
+    }
+
+    // Fetch remaining companies (latest first)
+    const selectSql = `
+      SELECT *
+      FROM company
+      ORDER BY id DESC
+    `;
+    const allRows = await connection.execute(selectSql, [], {
+      outFormat: oracledb.OUT_FORMAT_OBJECT,
+    });
+    const allCompanies = allRows.rows.map((row) => ({
+      id: row.ID,
+      companyCode: row.COMPANY_CODE,
+      companyName: row.COMPANY_NAME,
+      gst: row.GST,
+      address: row.ADDRESS,
+      phone: row.PHONE,
+      adminName: row.ADMIN_NAME,
+      savedAt: row.UPDATED_AT || row.CREATED_AT, // ensure column names exist
+    }));
+
+    res.status(200).json({
+      message: "Company deleted successfully",
+      allCompanies,
+    });
+  } catch (err) {
+    console.error("Error deleting company:", err);
+
+    // Optionally handle specific Oracle errors (e.g., foreign key constraint)
+    if (err.errorNum === 2292) {
+      // ORA-02292: integrity constraint violated
+      return res.status(409).json({
+        error: "Cannot delete company because it has related records.",
+      });
+    }
+
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }
+};
+
+exports.deleteCompany1 = async (req, res) => {
   const companyId = parseInt(req.params.id, 10);
 
   let connection;

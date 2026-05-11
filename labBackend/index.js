@@ -112,6 +112,11 @@ app.use((req, res, next) => {
 
 // ============ END LOGGING MIDDLEWARES ============
 
+// ✅ Handle favicon requests (prevents unnecessary 404 logs)
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).end(); // 204 No Content - silent response
+});
+
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(
