@@ -352,119 +352,6 @@ exports.updateTrf = async (req, res) => {
     if (connection) await connection.close();
   }
 };
-exports.updateTrf1 = async (req, res) => {
-  const trfId = parseInt(req.params.id, 10);
-  const { requestName, lotNo, remark, createdBy, selectedTests } = req.body;
-
-  if (!requestName || !selectedTests || !selectedTests.length) {
-    return res
-      .status(400)
-      .json({ error: "Missing required fields or no tests selected" });
-  }
-  // validate testId presence
-  for (let i = 0; i < selectedTests.length; i++) {
-    if (!selectedTests[i].testId) {
-      return res
-        .status(400)
-        .json({ error: `selectedTests[${i}] missing testId` });
-    }
-  }
-
-  let connection;
-  try {
-    connection = await oracledb.getConnection(dbConfig);
-
-    // 🔒 Check status - reject if submitted
-    const statusCheck = await connection.execute(
-      `SELECT status FROM trf_requests WHERE id = :id`,
-      { id: trfId },
-    );
-    if (statusCheck.rows.length === 0)
-      return res.status(404).json({ error: "TRF not found" });
-    if (statusCheck.rows[0][0] === "submitted")
-      return res
-        .status(403)
-        .json({ error: "Submitted TRF cannot be modified" });
-
-    const existing = await connection.execute(
-      `SELECT company_id, lab_id, product_id FROM trf_requests WHERE id = :id`,
-      { id: trfId },
-    );
-    if (existing.rows.length === 0)
-      return res.status(404).json({ error: "TRF not found" });
-    const [companyId, labId, productId] = existing.rows[0];
-
-    await connection.execute(
-      `UPDATE trf_requests 
-       SET company_id = :companyId, request_name = :requestName, lab_id = :labId,
-           product_id = :productId, lot_no = :lotNo, remark = :remark,
-           created_by = :createdBy, updated_at = CURRENT_TIMESTAMP
-       WHERE id = :trfId`,
-      {
-        companyId,
-        requestName,
-        labId,
-        productId,
-        lotNo: lotNo || null,
-        remark: remark || null,
-        createdBy: createdBy || "admin@example.com",
-        trfId,
-      },
-    );
-
-    // Delete children
-    await connection.execute(
-      `DELETE FROM trf_test_fields WHERE trf_selected_id IN (SELECT id FROM trf_selected_tests WHERE trf_id = :trfId)`,
-      { trfId },
-    );
-    await connection.execute(
-      `DELETE FROM trf_selected_tests WHERE trf_id = :trfId`,
-      { trfId },
-    );
-
-    // Re-insert all tests and fields (including custom fields with values)
-    for (const test of selectedTests) {
-      const stResult = await connection.execute(
-        `INSERT INTO trf_selected_tests (trf_id, test_id) VALUES (:trfId, :testId) RETURNING id INTO :selectedId`,
-        {
-          trfId,
-          testId: test.testId,
-          selectedId: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
-        },
-      );
-      const selectedTestId = stResult.outBinds.selectedId[0];
-      for (let i = 0; i < test.fields.length; i++) {
-        const f = test.fields[i];
-        await connection.execute(
-          `INSERT INTO trf_test_fields 
-           (trf_selected_id, field_id, custom_label, placeholder,  is_predefined, sort_order, field_value)
-           VALUES (:selectedId, :fieldId, :customLabel, :placeholder,  :isPredefined, :sortOrder, :fieldValue)`,
-          {
-            selectedId: selectedTestId,
-            fieldId: f.isPredefined ? f.fieldId : null,
-            customLabel: f.isPredefined
-              ? f.customLabel
-              : f.customLabel || f.fieldName,
-            placeholder: f.placeholder,
-
-            isPredefined: f.isPredefined ? 1 : 0,
-            sortOrder: i,
-            fieldValue: f.fieldValue !== undefined ? f.fieldValue : null,
-          },
-        );
-      }
-    }
-
-    await connection.commit();
-    res.json({ success: true, message: "TRF updated successfully" });
-  } catch (err) {
-    if (connection) await connection.rollback();
-    console.error("Update error:", err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    if (connection) await connection.close();
-  }
-};
 
 exports.deleteTrf = async (req, res) => {
   const trfId = parseInt(req.params.id, 10);
@@ -543,7 +430,7 @@ exports.getTrfForUserFill = async (req, res) => {
       `SELECT tr.id, tr.trf_code, tr.request_name, tr.lot_no, tr.remark, tr.status, tr.created_at, tr.updated_at,
               c.company_name, c.company_code,
               l.lab_name, l.lab_code, l.lab_type,
-              p.product_name, p.product_id as sample_code
+              p.product_name, p.product_id as sample_code, tr.submitted_at
        FROM trf_requests tr
        JOIN company c ON c.id = tr.company_id
        JOIN lab l ON l.id = tr.lab_id
@@ -571,17 +458,20 @@ exports.getTrfForUserFill = async (req, res) => {
       labType: row[12],
       productName: row[13],
       sampleCode: row[14],
+      submittedAt: row[15],
     };
 
-    // 🔥 Use stored custom_label as the label (it contains the actual field name from frontend)
+    // 🔥 MODIFIED: Added join to test_fields to get the actual field_name for predefined fields
     const fieldsResult = await connection.execute(
       `SELECT tf.id AS field_row_id, ts.test_name,
               tf.custom_label AS label,
               tf.placeholder, tf.field_value AS current_value, tf.is_predefined,
-              tf.field_id
+              tf.field_id,
+              tfl.field_name AS predefined_field_name
        FROM trf_test_fields tf
        JOIN trf_selected_tests st ON st.id = tf.trf_selected_id
        JOIN tests ts ON ts.id = st.test_id
+       LEFT JOIN test_fields tfl ON tfl.id = tf.field_id
        WHERE st.trf_id = :trfId
        ORDER BY st.id, tf.sort_order`,
       { trfId },
@@ -590,20 +480,27 @@ exports.getTrfForUserFill = async (req, res) => {
     const fieldsByTest = {};
     for (const f of fieldsResult.rows) {
       const testName = f[1];
-      let label = f[2] || "Unnamed Field"; // custom_label holds the actual name
+      let label = f[2] || "Unnamed Field";
       const placeholder = f[3] || "Enter value";
       const currentValue = f[4] || "";
       const isPredefined = f[5] === 1;
-      const fieldId = f[6]; // may be test_id or field_id, keep as is
+      const fieldId = f[6];
+      const predefinedFieldName = f[7];
+
+      // Determine the actual field name:
+      // - For predefined fields, use the predefined_field_name from test_fields
+      // - For custom fields, use the custom_label (same as label)
+      const fieldName = isPredefined ? predefinedFieldName || label : label;
 
       if (!fieldsByTest[testName]) fieldsByTest[testName] = [];
       fieldsByTest[testName].push({
         fieldRowId: f[0],
         label,
+        fieldName, // ✅ Added fieldName
         placeholder,
         currentValue,
         isPredefined,
-        fieldId, // optional, for reference
+        fieldId,
       });
     }
 
@@ -751,7 +648,7 @@ exports.getPendingTrfs = async (req, res) => {
       `SELECT 
          tr.id, tr.trf_code, tr.request_name, tr.lot_no, tr.remark,
          tr.status, tr.created_at, tr.updated_at,
-         c.company_name,
+         c.company_name, 
          p.product_name, p.product_id AS sample_code,
          l.lab_name, l.lab_code, l.lab_type
        FROM trf_requests tr
@@ -853,7 +750,7 @@ exports.getSubmittedTrfs = async (req, res) => {
          tr.status, tr.created_at, tr.updated_at, tr.submitted_at,
          c.company_name,
          p.product_name, p.product_id AS sample_code,
-         l.lab_name, l.lab_code, l.lab_type
+         l.lab_name, l.lab_code, l.lab_type ,c.company_code
        FROM trf_requests tr
        JOIN company c ON c.id = tr.company_id
        JOIN product p ON p.id = tr.product_id
@@ -930,6 +827,7 @@ exports.getSubmittedTrfs = async (req, res) => {
         labName: row[12],
         labCode: row[13],
         labType: row[14],
+        companyCode: row[15],
         testNames,
         selectedTests: Array.from(testMap.values()),
       });

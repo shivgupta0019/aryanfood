@@ -1,10 +1,10 @@
 import api from "../../api/axiosConfig";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 
 const generateUniqueId = () =>
   `${Date.now()}-${Math.random().toString(36).substr(2, 8)}`;
 
-// Simple spinner component
+// Spinner component (same as before)
 const Spinner = ({ size = 20, color = "#000000" }) => (
   <div
     style={{
@@ -19,7 +19,6 @@ const Spinner = ({ size = 20, color = "#000000" }) => (
   />
 );
 
-// Inject keyframe animation globally
 if (typeof document !== "undefined") {
   const style = document.createElement("style");
   style.textContent = `
@@ -45,13 +44,11 @@ if (typeof document !== "undefined") {
 }
 
 const TestRequestForm = () => {
-  // ========== State ==========
   const [allTestingFields, setAllTestingFields] = useState({});
   const [companiesData, setCompaniesData] = useState([]);
   const [allLabs, setAllLabs] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
 
-  // Form fields
   const [selectedCompanyName, setSelectedCompanyName] = useState("");
   const [companyCode, setCompanyCode] = useState("");
   const [requestName, setRequestName] = useState("");
@@ -63,15 +60,13 @@ const TestRequestForm = () => {
   const [sampleCode, setSampleCode] = useState("");
   const [remark, setRemark] = useState("");
 
-  // Tests
   const [selectedTests, setSelectedTests] = useState([]);
+  const [selectedTests1, setSelectedTests1] = useState([]);
   const [testData, setTestData] = useState({});
 
-  // Editing & Table
   const [editingId, setEditingId] = useState(null);
   const [trfList, setTrfList] = useState([]);
 
-  // ---------- LOADING STATES ----------
   const [loadingTests, setLoadingTests] = useState(false);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [loadingLabs, setLoadingLabs] = useState(false);
@@ -81,7 +76,6 @@ const TestRequestForm = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [loadingEditId, setLoadingEditId] = useState(null);
 
-  // ---------- SEARCH STATES FOR DROPDOWNS ----------
   const [companySearch, setCompanySearch] = useState("");
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [labSearch, setLabSearch] = useState("");
@@ -89,14 +83,15 @@ const TestRequestForm = () => {
   const [productSearch, setProductSearch] = useState("");
   const [showProductDropdown, setShowProductDropdown] = useState(false);
 
-  // ---------- TABLE SEARCH / SORT / PAGINATION ----------
   const [tableSearch, setTableSearch] = useState("");
-  const [sortField, setSortField] = useState("id"); // can be 'trfCode', 'companyName', 'requestName', 'labName', 'productName', 'tests'
+  const [sortField, setSortField] = useState("id");
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // ========== Helper: build fields for a test ==========
+  // Ref to prevent auto-loading product tests during edit
+  const skipProductLoadRef = useRef(false);
+
   const buildInitialFields = (testName) => {
     const fieldsArray = allTestingFields[testName];
     if (!fieldsArray) return [];
@@ -110,7 +105,88 @@ const TestRequestForm = () => {
     }));
   };
 
-  // ========== Filter functions for searchable dropdowns ==========
+  const loadProductTests = (product) => {
+    if (!product || !product.testRanges || product.testRanges.length === 0) {
+      setSelectedTests([]);
+      setTestData({});
+      return;
+    }
+
+    const newSelectedTests = [];
+    const newTestData = {};
+
+    product.testRanges.forEach((tr) => {
+      const testName = tr.testName;
+      newSelectedTests.push(testName);
+      const fields = [];
+      tr.fields.forEach((fieldDef) => {
+        if (fieldDef.isCustom) {
+          fields.push({
+            id: generateUniqueId(),
+            fieldName: fieldDef.fieldName || fieldDef.customLabel,
+            fieldValue: "",
+            placeholder: fieldDef.label || "Enter value",
+            isPredefined: false,
+            dbFieldId: null,
+          });
+        } else {
+          const testFields = allTestingFields[testName];
+          const matchedField = testFields?.find(
+            (tf) => tf.name === fieldDef.fieldName,
+          );
+          if (matchedField) {
+            fields.push({
+              id: `predefined-${matchedField.id}-${matchedField.name}`,
+              fieldName: matchedField.label,
+              fieldValue: "",
+              placeholder: matchedField.placeholder || "Enter value",
+              isPredefined: true,
+              dbFieldId: matchedField.id,
+            });
+          } else {
+            fields.push({
+              id: generateUniqueId(),
+              fieldName: fieldDef.fieldName,
+              fieldValue: "",
+              placeholder: fieldDef.label || "Enter value",
+              isPredefined: false,
+              dbFieldId: null,
+            });
+          }
+        }
+      });
+      newTestData[testName] = { fields };
+    });
+
+    setSelectedTests(newSelectedTests);
+    setSelectedTests1(newSelectedTests);
+    setTestData(newTestData);
+  };
+
+  // Auto-load product tests only when productName changes from user selection (not during edit)
+  useEffect(() => {
+    if (!productName) {
+      if (!skipProductLoadRef.current) {
+        setSelectedTests([]);
+        setTestData({});
+      }
+      return;
+    }
+    const selectedProduct = allProducts.find(
+      (p) => p.productName === productName,
+    );
+    if (
+      selectedProduct &&
+      Object.keys(allTestingFields).length > 0 &&
+      !skipProductLoadRef.current
+    ) {
+      loadProductTests(selectedProduct);
+    } else if (selectedProduct && skipProductLoadRef.current) {
+      // During edit, do nothing – the edit data is already loaded
+    }
+  }, [productName, allProducts, allTestingFields]);
+
+  // Filter functions
   const filteredCompanies = companySearch
     ? companiesData.filter((comp) =>
         comp.companyName.toLowerCase().includes(companySearch.toLowerCase()),
@@ -129,7 +205,7 @@ const TestRequestForm = () => {
       )
     : allProducts;
 
-  // ========== API calls ==========
+  // API calls
   const handleGetAllTests = async () => {
     setLoadingTests(true);
     try {
@@ -192,7 +268,7 @@ const TestRequestForm = () => {
     try {
       const response = await api.get("/trf");
       setTrfList(response.data);
-      setCurrentPage(1); // reset to first page when new data arrives
+      setCurrentPage(1);
     } catch (error) {
       console.error("Error fetching TRF list:", error);
       alert("Failed to load TRF list");
@@ -201,7 +277,7 @@ const TestRequestForm = () => {
     }
   };
 
-  // ========== Auto‑fill helpers ==========
+  // Auto-fill helpers
   useEffect(() => {
     const selected = companiesData.find(
       (c) => c.companyName === selectedCompanyName,
@@ -227,7 +303,7 @@ const TestRequestForm = () => {
     setSampleCode(selectedProduct ? selectedProduct.productId : "");
   }, [productName, allProducts]);
 
-  // ========== Test selection ==========
+  // Initialize missing test data (only for newly selected tests, not during edit)
   const initializeTestData = (testName) => {
     if (!testData[testName]) {
       setTestData((prev) => ({
@@ -243,20 +319,15 @@ const TestRequestForm = () => {
     });
   }, [selectedTests]);
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('[data-dropdown="company"]')) {
+      if (!e.target.closest('[data-dropdown="company"]'))
         setShowCompanyDropdown(false);
-      }
-      if (!e.target.closest('[data-dropdown="lab"]')) {
-        setShowLabDropdown(false);
-      }
-      if (!e.target.closest('[data-dropdown="product"]')) {
+      if (!e.target.closest('[data-dropdown="lab"]')) setShowLabDropdown(false);
+      if (!e.target.closest('[data-dropdown="product"]'))
         setShowProductDropdown(false);
-      }
     };
-
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
@@ -270,7 +341,6 @@ const TestRequestForm = () => {
     }
   };
 
-  // ========== Custom field management ==========
   const addCustomField = (testName) => {
     const newField = {
       id: generateUniqueId(),
@@ -313,7 +383,6 @@ const TestRequestForm = () => {
     }));
   };
 
-  // ========== Form reset & edit ==========
   const resetForm = () => {
     setSelectedCompanyName("");
     setCompanyCode("");
@@ -330,8 +399,10 @@ const TestRequestForm = () => {
     setEditingId(null);
   };
 
+  // FIXED: loadRequestForEdit with skip flag to prevent product test reload
   const loadRequestForEdit = async (trf) => {
     setLoadingEditId(trf.id);
+    skipProductLoadRef.current = true; // Prevent product load effect from overwriting
     try {
       const response = await api.get(`/trf/${trf.id}`);
       const data = response.data;
@@ -372,16 +443,19 @@ const TestRequestForm = () => {
         if (!testName) testName = `Test_${test.testId}`;
         newSelectedTests.push(testName);
 
-        const fieldsArray = test.fields.map((f, idx) => ({
-          id: f.isPredefined ? `predefined-${f.fieldId}` : generateUniqueId(),
+        const fieldsArray = test.fields.map((f) => ({
+          id: f.isPredefined
+            ? `predefined-${f.fieldId}-${Date.now()}-${Math.random()}`
+            : generateUniqueId(),
           fieldName: f.isPredefined
             ? f.label || "Predefined"
             : f.customLabel || "",
           fieldValue: "",
-          placeholder: f.placeholder,
+          placeholder: f.placeholder || "Enter value",
           isPredefined: f.isPredefined,
           dbFieldId: f.isPredefined ? f.fieldId : null,
         }));
+
         newTestData[testName] = { fields: fieldsArray };
       }
 
@@ -392,6 +466,10 @@ const TestRequestForm = () => {
       alert("Failed to load request details");
     } finally {
       setLoadingEditId(null);
+      // Reset the skip flag after a short delay to allow state updates to settle
+      setTimeout(() => {
+        skipProductLoadRef.current = false;
+      }, 500);
     }
   };
 
@@ -492,8 +570,7 @@ const TestRequestForm = () => {
 
   const cancelEdit = () => resetForm();
 
-  // ========== Table sorting, filtering, pagination ==========
-  // Helper to get test names string for filtering/sorting
+  // Table logic (same as before)
   const getTestNamesList = (trf) => {
     const testNames = trf.selectedTests.map((t) => {
       const entry = Object.entries(allTestingFields).find(
@@ -514,12 +591,10 @@ const TestRequestForm = () => {
     return testNames;
   };
 
-  // Filter logic
   const filterTableData = (data) => {
     if (!tableSearch) return data;
     const searchLower = tableSearch.toLowerCase();
     return data.filter((item) => {
-      // Search in all visible fields
       return (
         item.trfCode?.toLowerCase().includes(searchLower) ||
         item.companyName?.toLowerCase().includes(searchLower) ||
@@ -531,7 +606,6 @@ const TestRequestForm = () => {
     });
   };
 
-  // Sort logic
   const sortTableData = (data, field, direction) => {
     if (!field) return data;
     return [...data].sort((a, b) => {
@@ -568,13 +642,11 @@ const TestRequestForm = () => {
     });
   };
 
-  // Pagination
   const paginateData = (data, page, perPage) => {
     const start = (page - 1) * perPage;
     return data.slice(start, start + perPage);
   };
 
-  // Processed table data
   const processedTableData = useMemo(() => {
     if (!trfList.length) return { data: [], total: 0 };
     const filtered = filterTableData(trfList);
@@ -590,12 +662,10 @@ const TestRequestForm = () => {
     itemsPerPage,
   ]);
 
-  // Reset page when search or items per page changes
   useEffect(() => {
     setCurrentPage(1);
   }, [tableSearch, itemsPerPage]);
 
-  // Handle sort column click
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -605,7 +675,6 @@ const TestRequestForm = () => {
     }
   };
 
-  // Sort indicator component
   const SortIndicator = ({ field }) => {
     if (sortField !== field)
       return <span className="trf-sort-indicator"></span>;
@@ -616,7 +685,6 @@ const TestRequestForm = () => {
     );
   };
 
-  // Pagination controls component
   const PaginationControls = () => {
     const totalPages = Math.ceil(processedTableData.total / itemsPerPage);
     const startItem =
@@ -655,15 +723,11 @@ const TestRequestForm = () => {
           </button>
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
+            if (totalPages <= 5) pageNum = i + 1;
+            else if (currentPage <= 3) pageNum = i + 1;
+            else if (currentPage >= totalPages - 2)
               pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = currentPage - 2 + i;
-            }
+            else pageNum = currentPage - 2 + i;
             return (
               <button
                 key={pageNum}
@@ -689,7 +753,6 @@ const TestRequestForm = () => {
     );
   };
 
-  // ========== Initial load ==========
   useEffect(() => {
     handleGetAllTests();
     handleGetAllCompany();
@@ -698,7 +761,7 @@ const TestRequestForm = () => {
     fetchTrfList();
   }, []);
 
-  // ========== Render ==========
+  // JSX Rendering (same as provided, but ensure no duplicate fields)
   return (
     <div style={styles.container}>
       <style>{`
@@ -737,28 +800,12 @@ const TestRequestForm = () => {
                   setCompanySearch(e.target.value);
                   setShowCompanyDropdown(true);
                 }}
-                onFocus={() => {
-                  setShowCompanyDropdown(true);
-                }}
+                onFocus={() => setShowCompanyDropdown(true)}
                 style={styles.input}
                 disabled={loadingCompanies}
               />
               {showCompanyDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    backgroundColor: "#fff",
-                    border: "1px solid #ddd",
-                    borderTop: "none",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                    zIndex: 10,
-                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                  }}
-                >
+                <div style={dropdownStyles}>
                   <div
                     style={{
                       padding: "8px",
@@ -863,28 +910,12 @@ const TestRequestForm = () => {
                   setLabSearch(e.target.value);
                   setShowLabDropdown(true);
                 }}
-                onFocus={() => {
-                  setShowLabDropdown(true);
-                }}
+                onFocus={() => setShowLabDropdown(true)}
                 style={styles.input}
                 disabled={loadingLabs}
               />
               {showLabDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    backgroundColor: "#fff",
-                    border: "1px solid #ddd",
-                    borderTop: "none",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                    zIndex: 10,
-                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                  }}
-                >
+                <div style={dropdownStyles}>
                   <div
                     style={{
                       padding: "8px",
@@ -978,39 +1009,17 @@ const TestRequestForm = () => {
               <input
                 type="text"
                 placeholder="Search or select product..."
-                value={
-                  productSearch !== ""
-                    ? productSearch
-                    : showProductDropdown
-                      ? ""
-                      : productName
-                }
+                value={productSearch !== "" ? productSearch : productName}
                 onChange={(e) => {
                   setProductSearch(e.target.value);
                   setShowProductDropdown(true);
                 }}
-                onFocus={() => {
-                  setShowProductDropdown(true);
-                }}
+                onFocus={() => setShowProductDropdown(true)}
                 style={styles.input}
                 disabled={loadingProducts}
               />
               {showProductDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    backgroundColor: "#fff",
-                    border: "1px solid #ddd",
-                    borderTop: "none",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                    zIndex: 10,
-                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                  }}
-                >
+                <div style={dropdownStyles}>
                   <div
                     style={{
                       padding: "8px",
@@ -1096,9 +1105,7 @@ const TestRequestForm = () => {
 
       {/* Card 4: Define Test Proform */}
       <div style={styles.card}>
-        <h2 style={styles.cardTitle}>
-          🧪 4. Define Test Proform (Structure only)
-        </h2>
+        <h2 style={styles.cardTitle}>🧪 4. Define Test Proform</h2>
         {loadingTests ? (
           <div style={styles.loaderContainer}>
             <Spinner size={30} />
@@ -1106,53 +1113,35 @@ const TestRequestForm = () => {
         ) : (
           <>
             <div style={styles.testCheckboxGroup}>
-              {Object.keys(allTestingFields).map((testKey) => (
-                <label key={testKey} style={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={selectedTests.includes(testKey)}
-                    onChange={() => toggleTest(testKey)}
-                  />
-                  {testKey}
-                </label>
-              ))}
+              {Object.keys(allTestingFields).map((testKey) => {
+                return selectedTests1?.includes(testKey) ? (
+                  <label key={testKey} style={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={selectedTests.includes(testKey)}
+                      onChange={() => toggleTest(testKey)}
+                    />
+                    {testKey}
+                  </label>
+                ) : null;
+              })}
             </div>
 
             {selectedTests.map((testName) => (
               <div key={testName} style={styles.testSection}>
                 <div style={styles.testHeader}>
                   <h3>🔬 {testName}</h3>
-                  <button
+                  {/* <button
                     onClick={() => addCustomField(testName)}
                     style={styles.addCustomBtn}
                   >
                     + Add Custom Field
-                  </button>
+                  </button> */}
                 </div>
                 <div style={styles.grid2Col}>
                   {testData[testName]?.fields?.map((field) => (
                     <div key={field.id} style={styles.fieldGroup}>
-                      {field.isPredefined ? (
-                        <label style={styles.label}>{field.fieldName}</label>
-                      ) : (
-                        <input
-                          type="text"
-                          placeholder="Parameter name (e.g., Viscosity Index)"
-                          value={field.fieldName}
-                          onChange={(e) =>
-                            updateCustomFieldName(
-                              testName,
-                              field.id,
-                              e.target.value,
-                            )
-                          }
-                          style={{
-                            ...styles.input,
-                            marginBottom: "6px",
-                            fontWeight: 500,
-                          }}
-                        />
-                      )}
+                      {<label style={styles.label}>{field.fieldName}</label>}
                       <div
                         style={{
                           ...styles.input,
@@ -1168,17 +1157,6 @@ const TestRequestForm = () => {
                         >
                           {field.placeholder || "(Value will be filled later)"}
                         </span>
-                        {!field.isPredefined && (
-                          <button
-                            onClick={() =>
-                              removeCustomField(testName, field.id)
-                            }
-                            style={styles.removeIconBtn}
-                            title="Remove field"
-                          >
-                            🗑️
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -1205,7 +1183,7 @@ const TestRequestForm = () => {
         />
       </div>
 
-      {/* ===== ACTION BAR ===== */}
+      {/* Action Bar */}
       <div style={styles.actionBar}>
         <button
           onClick={handleSaveRequest}
@@ -1226,7 +1204,7 @@ const TestRequestForm = () => {
         )}
       </div>
 
-      {/* ========== ENHANCED TABLE UI WITH SEARCH, SORT, PAGINATION ========== */}
+      {/* Table */}
       <div style={styles.tableWrapper}>
         <div style={styles.tableHeader}>
           <h2 style={styles.tableTitle}>📋 Submitted Requests</h2>
@@ -1286,7 +1264,6 @@ const TestRequestForm = () => {
                     const testNames = getTestNamesForDisplay(trf);
                     const isDeleting = deletingId === trf.id;
                     const isLoadingEdit = loadingEditId === trf.id;
-
                     return (
                       <tr key={trf.id}>
                         <td data-label="ID" style={{ paddingLeft: "10px" }}>
@@ -1352,7 +1329,20 @@ const TestRequestForm = () => {
   );
 };
 
-// ========== Enhanced Styles (Modern Table) ==========
+const dropdownStyles = {
+  position: "absolute",
+  top: "100%",
+  left: 0,
+  right: 0,
+  backgroundColor: "#fff",
+  border: "1px solid #ddd",
+  borderTop: "none",
+  maxHeight: "200px",
+  overflowY: "auto",
+  zIndex: 10,
+  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+};
+
 const styles = {
   container: {
     maxWidth: "95vw",
@@ -1501,7 +1491,6 @@ const styles = {
     fontWeight: "500",
     cursor: "pointer",
   },
-  // Enhanced Table Styles
   tableWrapper: {
     marginTop: "32px",
     background: "#ffffff",
@@ -1626,7 +1615,6 @@ const styles = {
     marginBottom: "12px",
     opacity: 0.5,
   },
-  // Pagination styles
   paginationContainer: {
     display: "flex",
     justifyContent: "space-between",
@@ -1673,7 +1661,6 @@ const styles = {
   },
 };
 
-// Add global table hover styles
 if (typeof document !== "undefined") {
   const tableHoverStyle = document.createElement("style");
   tableHoverStyle.textContent = `
