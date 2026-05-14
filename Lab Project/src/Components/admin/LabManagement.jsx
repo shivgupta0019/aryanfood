@@ -5,678 +5,196 @@ import { MdOutlinePictureAsPdf } from "react-icons/md";
 import { IoCloseSharp } from "react-icons/io5";
 import { MdOutlineDeleteOutline } from "react-icons/md";
 
+// ==================== GLOBAL STYLES ====================
 const globalStyles = `
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  body {
-    background: #ffffff;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
-  }
-
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #ffffff; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif; }
   @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
-
-  /* Loader Styles */
-  .lm-loader-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-  }
-
-  .lm-loader {
-    width: 24px;
-    height: 24px;
-    border: 3px solid #e2e8f0;
-    border-top: 3px solid #000000;
-    border-radius: 50%;
-    animation: lm-spin 0.8s linear infinite;
-  }
-
-  .lm-loader-sm {
-    width: 14px;
-    height: 14px;
-    border-width: 2px;
-  }
-
-  .lm-loader-inline {
-    display: inline-block;
-    margin-left: 8px;
-    vertical-align: middle;
-  }
-
-  @keyframes lm-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  .lm-app {
-    min-height: 100vh;
-    background: #ffffff;
-  }
-
-  .lm-container {
-    max-width: 95%;
-    margin: 0 auto;
-    padding: 2rem 2rem 3rem;
-  }
-
-  .lm-header {
-    margin-bottom: 2.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 1.5rem;
-  }
-
-  .lm-title {
-    font-size: 1.8rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: #0f172a;
-    margin-bottom: 0.25rem;
-  }
-
-  .lm-subtitle {
-    font-size: 0.9rem;
-    color: #64748b;
-    font-weight: 400;
-  }
-
-  .lm-tabs {
-    display: flex;
-    gap: 0.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-  }
-
-  .lm-tab {
-    background: transparent;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #64748b;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    font-family: inherit;
-  }
-
-  .lm-tab:hover {
-    color: #0f172a;
-  }
-
-  .lm-tab.active {
-    color: #0f172a;
-    font-weight: 600;
-  }
-
-  .lm-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #000000;
-    border-radius: 2px 2px 0 0;
-  }
-
-  .lm-panel {
-    animation: fadeIn 0.25s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .lm-form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-
-  .lm-full-width {
-    grid-column: span 2;
-  }
-
-  .lm-field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .lm-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #475569;
-  }
-
-  .lm-input,
-  .lm-select,
-  .lm-textarea {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    font-size: 0.95rem;
-    font-family: inherit;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    transition: all 0.2s;
-    outline: none;
-    color: #0f172a;
-  }
-
-  .lm-textarea {
-    resize: vertical;
-    min-height: 100px;
-  }
-
-  .lm-input:focus,
-  .lm-select:focus,
-  .lm-textarea:focus {
-    border-color: #000000;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
-  }
-
-  .lm-input::placeholder,
-  .lm-textarea::placeholder {
-    color: #94a3b8;
-  }
-
-  .lm-check-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-  }
-
-  .lm-checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    padding: 0.5rem 0;
-  }
-
-  .lm-checkbox-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #000000;
-  }
-
-  .lm-checkbox-item label {
-    font-size: 0.95rem;
-    color: #0f172a;
-    cursor: pointer;
-  }
-
-  .lm-new-test {
-    background: #f8fafc;
-    border-radius: 20px;
-    padding: 1.5rem;
-    margin: 1.5rem 0;
-    border: 1px solid #f1f5f9;
-  }
-
-  .lm-new-test-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #0f172a;
-    margin-bottom: 1rem;
-  }
-
-  .lm-row {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-end;
-    margin-bottom: 1rem;
-  }
-
-  .lm-row .lm-field {
-    flex: 1;
-  }
-
-  .lm-btn-small {
-    background: #000000;
-    border: none;
-    padding: 0.7rem 1.2rem;
-    border-radius: 40px;
-    font-weight: 500;
-    font-size: 0.8rem;
-    color: #ffffff;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .lm-btn-small:hover:not(:disabled) {
-    background: #1e293b;
-  }
-
-  .lm-btn-small:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .lm-btn-outline {
-    background: transparent;
-    border: 1px solid #e2e8f0;
-    padding: 0.5rem 1rem;
-    border-radius: 40px;
-    font-weight: 500;
-    font-size: 0.75rem;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .lm-btn-outline:hover:not(:disabled) {
-    border-color: #000000;
-    background: #f8fafc;
-  }
-
-  .lm-btn-outline:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .lm-dynamic-field-row {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-end;
-    margin-bottom: 0.75rem;
-  }
-
-  .lm-dynamic-field-row .lm-field {
-    flex: 1;
-    margin-bottom: 0;
-  }
-
-  .lm-test-section {
-    margin-top: 2rem;
-    border-top: 1px solid #f1f5f9;
-    padding-top: 1.5rem;
-  }
-
-  .lm-test-heading {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #0f172a;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .lm-test-fields {
-    background: #ffffff;
-    border: 1px solid #f1f5f9;
-    border-radius: 20px;
-    padding: 1.2rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .lm-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f1f5f9;
-  }
-
-  .lm-btn-secondary {
-    background: transparent;
-    border: 1px solid #e2e8f0;
-    padding: 0.7rem 1.5rem;
-    border-radius: 40px;
-    font-weight: 500;
-    font-size: 0.85rem;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-
-  .lm-btn-secondary:hover:not(:disabled) {
-    border-color: #000000;
-    background: #f8fafc;
-  }
-
-  .lm-btn-secondary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .lm-btn-primary {
-    background: #000000;
-    border: none;
-    padding: 0.7rem 1.8rem;
-    border-radius: 40px;
-    font-weight: 500;
-    font-size: 0.85rem;
-    color: #ffffff;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .lm-btn-primary:hover:not(:disabled) {
-    background: #1e293b;
-    transform: scale(0.98);
-  }
-
-  .lm-btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .lm-table-wrapper {
-    overflow-x: auto;
-    border-radius: 16px;
-    border: 1px solid #f1f5f9;
-    background: #ffffff;
-    margin-top: 1.5rem;
-  }
-
-  .lm-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    min-width: 600px;
-  }
-
-  .lm-table th {
-    text-align: left;
-    padding: 1rem;
-    background-color: #f8fafc;
-    font-weight: 600;
-    color: #0f172a;
-    border-bottom: 1px solid #e2e8f0;
-    cursor: pointer;
-    user-select: none;
-    transition: background-color 0.2s;
-  }
-
-  .lm-table th:hover {
-    background-color: #f1f5f9;
-  }
-
-  .lm-table th .sort-indicator {
-    margin-left: 0.5rem;
-    font-size: 0.7rem;
-    opacity: 0.6;
-  }
-
-  .lm-table td {
-    padding: 1rem;
-    border-bottom: 1px solid #f1f5f9;
-    color: #334155;
-    vertical-align: top;
-  }
-
-  .lm-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .lm-table tbody tr:hover {
-    background-color: #fafcff;
-  }
-
-  .lm-test-fields-preview {
-    margin: 0;
-    padding-left: 1rem;
-  }
-
-  .lm-editable-input {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    font-family: inherit;
-    font-size: 0.85rem;
-  }
-
-  .lm-editable-select {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    font-family: inherit;
-    font-size: 0.85rem;
-  }
-
-  .lm-action-buttons {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .lm-icon-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1rem;
-    padding: 0.3rem 0.5rem;
-    border-radius: 8px;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .lm-icon-btn:hover:not(:disabled) {
-    background: #f1f5f9;
-  }
-
-  .lm-icon-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  /* Search and Pagination Styles */
-  .lm-search-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .lm-search-box {
-    padding: 0.6rem 1rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 40px;
-    font-size: 0.85rem;
-    width: 250px;
-    font-family: inherit;
-    outline: none;
-    transition: all 0.2s;
-  }
-
-  .lm-search-box:focus {
-    border-color: #000000;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
-  }
-
-  .lm-pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .lm-pagination-controls {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .lm-pagination-btn {
-    background: transparent;
-    border: 1px solid #e2e8f0;
-    padding: 0.4rem 0.8rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-  }
-
-  .lm-pagination-btn:hover:not(:disabled) {
-    border-color: #000000;
-    background: #f8fafc;
-  }
-
-  .lm-pagination-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .lm-pagination-active {
-    background: #000000;
-    color: #ffffff;
-    border-color: #000000;
-  }
-
-  .lm-pagination-active:hover:not(:disabled) {
-    background: #1e293b;
-  }
-
-  .lm-items-per-page {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .lm-items-per-page select {
-    padding: 0.4rem 0.8rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-  }
-
-  /* Modal Styles */
-  .lm-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  .lm-modal {
-    background: white;
-    border-radius: 20px;
-    width: 90%;
-    max-width: 1250px;
-    height: 95%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 20px 30px rgba(0,0,0,0.2);
-  }
-  .lm-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  .lm-modal-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-  }
-  .lm-modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #64748b;
-  }
-  .lm-modal-close:hover {
-    color: #000;
-  }
-  .lm-modal-body {
-    flex: 1;
-    padding: 1rem;
-    overflow: auto;
-  }
-  .lm-iframe-pdf {
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-
+  .lm-loader-container { display: flex; justify-content: center; align-items: center; padding: 2rem; }
+  .lm-loader { width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top: 3px solid #000000; border-radius: 50%; animation: lm-spin 0.8s linear infinite; }
+  .lm-loader-sm { width: 14px; height: 14px; border-width: 2px; }
+  .lm-loader-inline { display: inline-block; margin-left: 8px; vertical-align: middle; }
+  @keyframes lm-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .lm-app { min-height: 100vh; background: #ffffff; }
+  .lm-container { max-width: 95%; margin: 0 auto; padding: 2rem 2rem 3rem; }
+  .lm-header { margin-bottom: 2.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1.5rem; }
+  .lm-title { font-size: 1.8rem; font-weight: 600; letter-spacing: -0.02em; color: #0f172a; margin-bottom: 0.25rem; }
+  .lm-subtitle { font-size: 0.9rem; color: #64748b; font-weight: 400; }
+  .lm-tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid #f1f5f9; margin-bottom: 2rem; flex-wrap: wrap; }
+  .lm-tab { background: transparent; border: none; padding: 0.75rem 1.5rem; font-size: 0.95rem; font-weight: 500; color: #64748b; cursor: pointer; transition: all 0.2s ease; position: relative; font-family: inherit; }
+  .lm-tab:hover { color: #0f172a; }
+  .lm-tab.active { color: #0f172a; font-weight: 600; }
+  .lm-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #000000; border-radius: 2px 2px 0 0; }
+  .lm-panel { animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .lm-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+  .lm-full-width { grid-column: span 2; }
+  .lm-field { display: flex; flex-direction: column; gap: 0.5rem; }
+  .lm-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
+  .lm-input, .lm-select, .lm-textarea { width: 100%; padding: 0.85rem 1rem; font-size: 0.95rem; font-family: inherit; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; transition: all 0.2s; outline: none; color: #0f172a; }
+  .lm-textarea { resize: vertical; min-height: 100px; }
+  .lm-input:focus, .lm-select:focus, .lm-textarea:focus { border-color: #000000; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05); }
+  .lm-check-group { display: flex; flex-direction: row; gap: 3rem; margin-top: 0.5rem;flex-wrap: wrap; }
+  .lm-checkbox-item { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.5rem 0; }
+  .lm-checkbox-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #000000; }
+  .lm-checkbox-item label { font-size: 0.95rem; color: #0f172a; cursor: pointer; }
+  .lm-new-test { background: #f8fafc; border-radius: 20px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #f1f5f9; }
+  .lm-new-test-title { font-size: 0.9rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; }
+  .lm-row { display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; }
+  .lm-row .lm-field { flex: 1; }
+  .lm-btn-small { background: #000000; border: none; padding: 0.7rem 1.2rem; border-radius: 40px; font-weight: 500; font-size: 0.8rem; color: #ffffff; cursor: pointer; transition: all 0.2s; font-family: inherit; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+  .lm-btn-small:hover:not(:disabled) { background: #1e293b; }
+  .lm-btn-small:disabled { opacity: 0.6; cursor: not-allowed; }
+  .lm-btn-outline { background: transparent; border: 1px solid #e2e8f0; padding: 0.5rem 1rem; border-radius: 40px; font-weight: 500; font-size: 0.75rem; color: #475569; cursor: pointer; transition: all 0.2s; }
+  .lm-btn-outline:hover:not(:disabled) { border-color: #000000; background: #f8fafc; }
+  .lm-btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+  .lm-dynamic-field-row { display: flex; gap: 0.75rem; align-items: flex-end; margin-bottom: 0.75rem; }
+  .lm-dynamic-field-row .lm-field { flex: 1; margin-bottom: 0; }
+  .lm-test-section { margin-top: 2rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; }
+  .lm-test-heading { font-size: 1.1rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .lm-test-fields { background: #ffffff; border: 1px solid #f1f5f9; border-radius: 20px; padding: 1.2rem; margin-bottom: 1.5rem; }
+  .lm-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; }
+  .lm-btn-secondary { background: transparent; border: 1px solid #e2e8f0; padding: 0.7rem 1.5rem; border-radius: 40px; font-weight: 500; font-size: 0.85rem; color: #475569; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+  .lm-btn-secondary:hover:not(:disabled) { border-color: #000000; background: #f8fafc; }
+  .lm-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .lm-btn-primary { background: #000000; border: none; padding: 0.7rem 1.8rem; border-radius: 40px; font-weight: 500; font-size: 0.85rem; color: #ffffff; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; }
+  .lm-btn-primary:hover:not(:disabled) { background: #1e293b; transform: scale(0.98); }
+  .lm-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .lm-table-wrapper { overflow-x: auto; border-radius: 16px; border: 1px solid #f1f5f9; background: #ffffff; margin-top: 1.5rem; }
+  .lm-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 600px; }
+  .lm-table th { text-align: left; padding: 1rem; background-color: #f8fafc; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; cursor: pointer; user-select: none; }
+  .lm-table th:hover { background-color: #f1f5f9; }
+  .lm-table th .sort-indicator { margin-left: 0.5rem; font-size: 0.7rem; opacity: 0.6; }
+  .lm-table td { padding: 1rem; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: top; }
+  .lm-table tr:last-child td { border-bottom: none; }
+  .lm-test-fields-preview { margin: 0; padding-left: 1rem; }
+  .lm-editable-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.85rem; }
+  .lm-editable-select { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.85rem; }
+  .lm-action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .lm-icon-btn { background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.3rem 0.5rem; border-radius: 8px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; }
+  .lm-icon-btn:hover:not(:disabled) { background: #f1f5f9; }
+  .lm-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .lm-search-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+  .lm-search-box { padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 40px; font-size: 0.85rem; width: 250px; font-family: inherit; outline: none; }
+  .lm-search-box:focus { border-color: #000000; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05); }
+  .lm-pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+  .lm-pagination-controls { display: flex; gap: 0.5rem; align-items: center; }
+  .lm-pagination-btn { background: transparent; border: 1px solid #e2e8f0; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 0.8rem; }
+  .lm-pagination-btn:hover:not(:disabled) { border-color: #000000; background: #f8fafc; }
+  .lm-pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .lm-pagination-active { background: #000000; color: #ffffff; border-color: #000000; }
+  .lm-items-per-page { display: flex; align-items: center; gap: 0.5rem; }
+  .lm-items-per-page select { padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.8rem; cursor: pointer; }
+  .lm-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+  .lm-modal { background: white; border-radius: 20px; width: 90%; max-width: 1250px; height: 95%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 30px rgba(0,0,0,0.2); }
+  .lm-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #e2e8f0; }
+  .lm-modal-header h3 { margin: 0; font-size: 1.1rem; }
+  .lm-modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+  .lm-modal-close:hover { color: #000; }
+  .lm-modal-body { flex: 1; padding: 1rem; overflow: auto; }
+  .lm-iframe-pdf { width: 100%; height: 100%; border: none; }
   @media (max-width: 720px) {
-    .lm-container {
-      padding: 1.5rem;
-    }
-    .lm-form-grid {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-    .lm-full-width {
-      grid-column: span 1;
-    }
-    .lm-tab {
-      padding: 0.6rem 1rem;
-      font-size: 0.85rem;
-    }
-    .lm-title {
-      font-size: 1.4rem;
-    }
-    .lm-row, .lm-dynamic-field-row {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .lm-btn-small {
-      align-self: flex-start;
-    }
-    .lm-table th,
-    .lm-table td {
-      padding: 0.75rem;
-    }
-    .lm-search-container {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .lm-search-box {
-      width: 100%;
-    }
-    .lm-pagination {
-      flex-direction: column;
-      align-items: center;
-    }
+    .lm-container { padding: 1.5rem; }
+    .lm-form-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .lm-full-width { grid-column: span 1; }
+    .lm-tab { padding: 0.6rem 1rem; font-size: 0.85rem; }
+    .lm-title { font-size: 1.4rem; }
+    .lm-row, .lm-dynamic-field-row { flex-direction: column; align-items: stretch; }
+    .lm-btn-small { align-self: flex-start; }
+    .lm-table th, .lm-table td { padding: 0.75rem; }
+    .lm-search-container { flex-direction: column; align-items: stretch; }
+    .lm-search-box { width: 100%; }
+    .lm-pagination { flex-direction: column; align-items: center; }
   }
+
+  /* Improved test ranges grid & cards */
+.lm-tests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+.lm-test-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #ffffff;
+  transition: box-shadow 0.2s;
+}
+.lm-test-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.lm-test-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafcff;
+  border-radius: 20px 20px;
+}
+.lm-test-card-body {
+  padding: 1.25rem;
+}
+.lm-range-field {
+  margin-bottom: 1rem;
+}
+.lm-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+.lm-range-inputs .lm-input {
+  flex: 1;
+  min-width: 80px;
+}
+.lm-input-unit {
+  flex: 0.5;
+  min-width: 80px;
+}
+.lm-range-dash {
+  font-weight: 500;
+  color: #64748b;
+}
+.lm-custom-section {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+}
+.lm-custom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.lm-custom-field-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.lm-custom-field-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.lm-custom-field-row .lm-input {
+  flex: 1;
+}
+@media (max-width: 640px) {
+  .lm-tests-grid {
+    grid-template-columns: 1fr;
+  }
+  .lm-range-inputs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lm-range-dash {
+    display: none;
+  }
+}
 `;
 
-// Helper to generate unique codes
+// ==================== HELPERS ====================
 const generateCode = (prefix = "ARY") => {
   const now = new Date();
   const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
@@ -713,9 +231,9 @@ const CircularLoader = ({ size = "md", inline = false }) => {
   );
 };
 
+// ==================== MAIN COMPONENT ====================
 export default function LabManagement() {
   const [activeTab, setActiveTab] = useState("company");
-  const [allTestingFilds, setAllTestingFilds] = useState({});
 
   // ---------- Company State ----------
   const [companyData, setCompanyData] = useState({
@@ -732,8 +250,6 @@ export default function LabManagement() {
   const [companySaveLoading, setCompanySaveLoading] = useState(false);
   const [companyDeleteLoading, setCompanyDeleteLoading] = useState(null);
   const [companyEditSaveLoading, setCompanyEditSaveLoading] = useState(false);
-
-  // Company table pagination/sort/search
   const [companySearch, setCompanySearch] = useState("");
   const [companySortField, setCompanySortField] = useState("savedAt");
   const [companySortDirection, setCompanySortDirection] = useState("desc");
@@ -756,15 +272,13 @@ export default function LabManagement() {
   const [labSaveLoading, setLabSaveLoading] = useState(false);
   const [labDeleteLoading, setLabDeleteLoading] = useState(null);
   const [labEditSaveLoading, setLabEditSaveLoading] = useState(false);
-
-  // Lab table pagination/sort/search
   const [labSearch, setLabSearch] = useState("");
   const [labSortField, setLabSortField] = useState("savedAt");
   const [labSortDirection, setLabSortDirection] = useState("desc");
   const [labCurrentPage, setLabCurrentPage] = useState(1);
   const [labItemsPerPage, setLabItemsPerPage] = useState(10);
 
-  // ---------- Product State (with PDF) ----------
+  // ---------- Product State ----------
   const [productData, setProductData] = useState({ productName: "" });
   const [savedProducts, setSavedProducts] = useState([]);
   const [productFetchLoading, setProductFetchLoading] = useState(false);
@@ -772,20 +286,34 @@ export default function LabManagement() {
   const [productDeleteLoading, setProductDeleteLoading] = useState(null);
   const [pdfUploadLoading, setPdfUploadLoading] = useState(null);
   const [pdfDeleteLoading, setPdfDeleteLoading] = useState(null);
-  // PDF Modal
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [currentPdfUrl, setCurrentPdfUrl] = useState("");
   const [currentPdfName, setCurrentPdfName] = useState("");
 
-  // Product table pagination/sort/search
+  // Tests (from backend)
+  const [availableTests, setAvailableTests] = useState([]);
+  const [testFetchLoading, setTestFetchLoading] = useState(false);
+
+  // Product ranges for create
+  const [selectedRangeTestIds, setSelectedRangeTestIds] = useState([]);
+  const [productRanges, setProductRanges] = useState({});
+  const [viewRangesProduct, setViewRangesProduct] = useState(null);
+
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editProductData, setEditProductData] = useState(null);
+  const [editProductName, setEditProductName] = useState("");
+  const [editSelectedTests, setEditSelectedTests] = useState([]);
+  const [editProductRanges, setEditProductRanges] = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const [productSearch, setProductSearch] = useState("");
   const [productSortField, setProductSortField] = useState("savedAt");
   const [productSortDirection, setProductSortDirection] = useState("desc");
   const [productCurrentPage, setProductCurrentPage] = useState(1);
   const [productItemsPerPage, setProductItemsPerPage] = useState(10);
 
-  // ---------- Testing State ----------
-  const [availableTests, setAvailableTests] = useState([]);
+  // ---------- Testing Tab State ----------
   const [selectedTestIds, setSelectedTestIds] = useState([]);
   const [testValues, setTestValues] = useState({});
   const [savedTests, setSavedTests] = useState([]);
@@ -795,17 +323,14 @@ export default function LabManagement() {
   const [newTestFields, setNewTestFields] = useState([
     { name: "", label: "", placeholder: "" },
   ]);
-  const [testFetchLoading, setTestFetchLoading] = useState(false);
   const [testCreateLoading, setTestCreateLoading] = useState(false);
-
-  // Testing table pagination/sort/search
   const [testingSearch, setTestingSearch] = useState("");
   const [testingSortField, setTestingSortField] = useState("savedAt");
   const [testingSortDirection, setTestingSortDirection] = useState("desc");
   const [testingCurrentPage, setTestingCurrentPage] = useState(1);
   const [testingItemsPerPage, setTestingItemsPerPage] = useState(10);
 
-  // Helper to get full PDF URL without /api prefix
+  // ==================== HELPERS ====================
   const getPdfFullUrl = (relativePath) => {
     if (!relativePath) return null;
     if (relativePath.startsWith("http")) return relativePath;
@@ -818,16 +343,14 @@ export default function LabManagement() {
     return `${cleanBase}${path}`;
   };
 
-  // ---------- Company API Calls ----------
+  // ==================== COMPANY API ====================
   const handleGetAllCompany = async () => {
     setCompanyFetchLoading(true);
     try {
-      const response = await api.get("/getCompanies");
-      if (response.data && response.data.allCompanies) {
-        setSavedCompanies(response.data.allCompanies);
-      }
-    } catch (error) {
-      console.error("Error fetching companies:", error);
+      const res = await api.get("/getCompanies");
+      if (res.data?.allCompanies) setSavedCompanies(res.data.allCompanies);
+    } catch (err) {
+      console.error(err);
       alert("Failed to load companies.");
     } finally {
       setCompanyFetchLoading(false);
@@ -835,26 +358,15 @@ export default function LabManagement() {
   };
 
   const handleSaveCompany = async () => {
-    if (!companyData.companyName.trim()) {
-      alert("Company Name is required.");
-      return;
-    }
+    if (!companyData.companyName.trim()) return alert("Company Name required.");
     setCompanySaveLoading(true);
     try {
-      const generatedCode = generateCode("ARY");
-      const payload = {
-        companyName: companyData.companyName,
-        gst: companyData.gst,
-        address: companyData.address,
-        phone: companyData.phone,
-        adminName: companyData.adminName,
-        companyCode: generatedCode,
-      };
-      const response = await api.post("/companies", payload);
-      if (response.data && response.data.allCompanies) {
-        setSavedCompanies(response.data.allCompanies);
-        alert("Company saved successfully!");
-      }
+      const code = generateCode("ARY");
+      const res = await api.post("/companies", {
+        ...companyData,
+        companyCode: code,
+      });
+      if (res.data?.allCompanies) setSavedCompanies(res.data.allCompanies);
       setCompanyData({
         companyName: "",
         gst: "",
@@ -863,71 +375,56 @@ export default function LabManagement() {
         adminName: "",
       });
       setCompanyCurrentPage(1);
-    } catch (error) {
-      console.error("Error saving company:", error);
-      const errorMsg = error.response?.data?.error || "Failed to save company.";
-      alert(errorMsg);
+      alert("Company saved!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Save failed.");
     } finally {
       setCompanySaveLoading(false);
     }
   };
 
   const saveEditCompany = async () => {
-    if (!editingCompanyData.companyName.trim()) {
-      alert("Company Name required.");
-      return;
-    }
+    if (!editingCompanyData.companyName.trim())
+      return alert("Company Name required.");
     setCompanyEditSaveLoading(true);
     try {
-      const response = await api.put(`/companies/${editingCompanyId}`, {
-        companyName: editingCompanyData.companyName,
-        gst: editingCompanyData.gst,
-        address: editingCompanyData.address,
-        phone: editingCompanyData.phone,
-        adminName: editingCompanyData.adminName,
-        companyCode: editingCompanyData.companyCode,
-      });
-      if (response.data && response.data.allCompanies) {
-        setSavedCompanies(response.data.allCompanies);
-        alert("Company updated successfully!");
-      }
+      const res = await api.put(
+        `/companies/${editingCompanyId}`,
+        editingCompanyData,
+      );
+      if (res.data?.allCompanies) setSavedCompanies(res.data.allCompanies);
       setEditingCompanyId(null);
       setEditingCompanyData(null);
-    } catch (error) {
-      console.error("Error updating company:", error);
-      alert(error.response?.data?.error || "Failed to update company.");
+      alert("Company updated!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Update failed.");
     } finally {
       setCompanyEditSaveLoading(false);
     }
   };
 
   const deleteCompany = async (id) => {
-    if (!window.confirm("Delete this company record?")) return;
+    if (!window.confirm("Delete this company?")) return;
     setCompanyDeleteLoading(id);
     try {
-      const response = await api.delete(`/companies/${id}`);
-      if (response.data && response.data.allCompanies) {
-        setSavedCompanies(response.data.allCompanies);
-        alert("Company deleted successfully!");
-      }
-    } catch (error) {
-      console.error("Error deleting company:", error);
-      alert(error.response?.data?.error || "Failed to delete company.");
+      const res = await api.delete(`/companies/${id}`);
+      if (res.data?.allCompanies) setSavedCompanies(res.data.allCompanies);
+      alert("Company deleted!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Delete failed.");
     } finally {
       setCompanyDeleteLoading(null);
     }
   };
 
-  // ---------- Lab API Calls ----------
+  // ==================== LAB API ====================
   const handleGetLab = async () => {
     setLabFetchLoading(true);
     try {
-      const response = await api.get("/labs");
-      if (response.data && response.data.allLabs) {
-        setSavedLabs(response.data.allLabs);
-      }
-    } catch (error) {
-      console.error("Error fetching labs:", error);
+      const res = await api.get("/labs");
+      if (res.data?.allLabs) setSavedLabs(res.data.allLabs);
+    } catch (err) {
+      console.error(err);
       alert("Failed to load labs.");
     } finally {
       setLabFetchLoading(false);
@@ -935,30 +432,13 @@ export default function LabManagement() {
   };
 
   const handleSaveLab = async () => {
-    if (!labData.labName.trim()) {
-      alert("Lab Name is required.");
-      return;
-    }
-    if (!labData.labType) {
-      alert("Please select Lab Type.");
-      return;
-    }
+    if (!labData.labName.trim()) return alert("Lab Name required.");
+    if (!labData.labType) return alert("Select Lab Type.");
     setLabSaveLoading(true);
     try {
-      const generatedCode = generateCode("LAB");
-      const response = await api.post("/labs", {
-        labName: labData.labName,
-        gst: labData.gst,
-        address: labData.address,
-        phone: labData.phone,
-        adminName: labData.adminName,
-        labType: labData.labType,
-        labCode: generatedCode,
-      });
-      if (response.data && response.data.allLabs) {
-        setSavedLabs(response.data.allLabs);
-        alert("Lab saved successfully!");
-      }
+      const code = generateCode("LAB");
+      const res = await api.post("/labs", { ...labData, labCode: code });
+      if (res.data?.allLabs) setSavedLabs(res.data.allLabs);
       setLabData({
         labName: "",
         gst: "",
@@ -968,166 +448,374 @@ export default function LabManagement() {
         labType: "",
       });
       setLabCurrentPage(1);
-    } catch (error) {
-      console.error("Error saving lab:", error);
-      alert(error.response?.data?.error || "Failed to save lab.");
+      alert("Lab saved!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Save failed.");
     } finally {
       setLabSaveLoading(false);
     }
   };
 
   const saveEditLab = async () => {
-    if (!editingLabData.labName.trim()) {
-      alert("Lab Name required.");
-      return;
-    }
+    if (!editingLabData.labName.trim()) return alert("Lab Name required.");
     setLabEditSaveLoading(true);
     try {
-      const response = await api.put(`/labs/${editingLabId}`, {
-        labName: editingLabData.labName,
-        gst: editingLabData.gst,
-        address: editingLabData.address,
-        phone: editingLabData.phone,
-        adminName: editingLabData.adminName,
-        labType: editingLabData.labType,
-        labCode: editingLabData.labCode,
-      });
-      if (response.data && response.data.allLabs) {
-        setSavedLabs(response.data.allLabs);
-        alert("Lab updated successfully!");
-      }
+      const res = await api.put(`/labs/${editingLabId}`, editingLabData);
+      if (res.data?.allLabs) setSavedLabs(res.data.allLabs);
       setEditingLabId(null);
       setEditingLabData(null);
-    } catch (error) {
-      console.error("Error updating lab:", error);
-      alert(error.response?.data?.error || "Failed to update lab.");
+      alert("Lab updated!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Update failed.");
     } finally {
       setLabEditSaveLoading(false);
     }
   };
 
   const deleteLab = async (id) => {
-    if (!window.confirm("Delete this lab record?")) return;
+    if (!window.confirm("Delete this lab?")) return;
     setLabDeleteLoading(id);
     try {
-      const response = await api.delete(`/labs/${id}`);
-      if (response.data && response.data.allLabs) {
-        setSavedLabs(response.data.allLabs);
-        alert("Lab deleted successfully!");
-      }
-    } catch (error) {
-      console.error("Error deleting lab:", error);
-      alert(error.response?.data?.error || "Failed to delete lab.");
+      const res = await api.delete(`/labs/${id}`);
+      if (res.data?.allLabs) setSavedLabs(res.data.allLabs);
+      alert("Lab deleted!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Delete failed.");
     } finally {
       setLabDeleteLoading(null);
     }
   };
 
-  // ---------- Product API Calls with PDF support ----------
+  // ==================== PRODUCT API (with ranges & edit) ====================
   const handleGetProduct = async () => {
     setProductFetchLoading(true);
     try {
-      const response = await api.get("/products");
-      if (response.data && response.data.allProducts) {
-        setSavedProducts(response.data.allProducts);
-      }
-    } catch (error) {
-      console.error("Error fetching products:", error);
+      const res = await api.get("/products");
+      if (res.data?.allProducts) setSavedProducts(res.data.allProducts);
+    } catch (err) {
+      console.error(err);
       alert("Failed to load products.");
     } finally {
       setProductFetchLoading(false);
     }
   };
 
+  // Add custom field (create modal)
+  const addCustomFieldToTest = (testName) => {
+    const newId = Date.now();
+    setProductRanges((prev) => {
+      const testRanges = prev[testName] || { predefined: {}, custom: [] };
+      const updatedCustom = [
+        ...(testRanges.custom || []),
+        { id: newId, fieldName: "", label: "", min: "", max: "", unit: "" },
+      ];
+      return { ...prev, [testName]: { ...testRanges, custom: updatedCustom } };
+    });
+  };
+  const removeCustomFieldFromTest = (testName, customId) => {
+    setProductRanges((prev) => {
+      const testRanges = prev[testName];
+      if (!testRanges) return prev;
+      const updatedCustom = (testRanges.custom || []).filter(
+        (c) => c.id !== customId,
+      );
+      return { ...prev, [testName]: { ...testRanges, custom: updatedCustom } };
+    });
+  };
+  const updateCustomFieldInTest = (testName, customId, key, value) => {
+    setProductRanges((prev) => {
+      const testRanges = prev[testName];
+      const updatedCustom = (testRanges.custom || []).map((c) =>
+        c.id === customId ? { ...c, [key]: value } : c,
+      );
+      return { ...prev, [testName]: { ...testRanges, custom: updatedCustom } };
+    });
+  };
+
+  // Create product
   const handleSaveProduct = async () => {
-    if (!productData.productName.trim()) {
-      alert("Product Name is required.");
-      return;
-    }
+    if (!productData.productName.trim()) return alert("Product Name required.");
     setProductSaveLoading(true);
     try {
       const generatedId = generateCode("SMP");
-      const response = await api.post("/products", {
+      const testRanges = [];
+      for (const [testName, ranges] of Object.entries(productRanges)) {
+        const fields = [];
+        // Predefined fields
+        for (const [fieldName, range] of Object.entries(
+          ranges.predefined || {},
+        )) {
+          if (range.min || range.max || range.unit) {
+            fields.push({
+              fieldName,
+              minValue: range.min,
+              maxValue: range.max,
+              unit: range.unit,
+              isCustom: false,
+            });
+          }
+        }
+        // Custom fields
+        for (const custom of ranges.custom || []) {
+          if (
+            custom.min ||
+            custom.max ||
+            custom.unit ||
+            custom.fieldName ||
+            custom.label
+          ) {
+            fields.push({
+              fieldName: custom.fieldName,
+              customLabel: custom.label,
+              minValue: custom.min,
+              maxValue: custom.max,
+              unit: custom.unit,
+              isCustom: true,
+            });
+          }
+        }
+        if (fields.length) testRanges.push({ testName, fields });
+      }
+      const payload = {
         productName: productData.productName,
         productId: generatedId,
-      });
-      if (response.data && response.data.allProducts) {
-        setSavedProducts(response.data.allProducts);
-        alert("Product saved successfully!");
-        setProductData({ productName: "" });
-        setProductCurrentPage(1);
-      }
-    } catch (error) {
-      console.error("Error saving product:", error);
-      alert(error.response?.data?.error || "Failed to save product.");
+        testRanges: testRanges.length ? testRanges : undefined,
+      };
+      const res = await api.post("/products", payload);
+      if (res.data?.allProducts) setSavedProducts(res.data.allProducts);
+      setProductData({ productName: "" });
+      setSelectedRangeTestIds([]);
+      setProductRanges({});
+      setProductCurrentPage(1);
+      alert("Product saved!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Save failed.");
     } finally {
       setProductSaveLoading(false);
     }
   };
 
+  // Edit product - open modal
+  const openEditModal = (product) => {
+    setEditProductData(product);
+    setEditProductName(product.productName);
+    const ranges = {};
+    const selected = [];
+    if (product.testRanges && Array.isArray(product.testRanges)) {
+      product.testRanges.forEach((tr) => {
+        const testName = tr.testName;
+        selected.push(testName);
+        const predefined = {};
+        const custom = [];
+        tr.fields.forEach((f) => {
+          if (f.isCustom) {
+            custom.push({
+              id: Date.now() + Math.random(),
+              fieldName: f.fieldName,
+              label: f.customLabel || f.label,
+              min: f.minValue || "",
+              max: f.maxValue || "",
+              unit: f.unit || "",
+            });
+          } else {
+            predefined[f.fieldName] = {
+              min: f.minValue || "",
+              max: f.maxValue || "",
+              unit: f.unit || "",
+            };
+          }
+        });
+        ranges[testName] = { predefined, custom };
+      });
+    }
+    setEditSelectedTests(selected);
+    setEditProductRanges(ranges);
+    setIsEditModalOpen(true);
+  };
+
+  const toggleEditTest = (testName) => {
+    if (editSelectedTests.includes(testName)) {
+      setEditSelectedTests((prev) => prev.filter((t) => t !== testName));
+      setEditProductRanges((prev) => {
+        const newRanges = { ...prev };
+        delete newRanges[testName];
+        return newRanges;
+      });
+    } else {
+      setEditSelectedTests((prev) => [...prev, testName]);
+      const test = availableTests.find((t) => t.id === testName);
+      if (test) {
+        const initialPredefined = {};
+        test.fields.forEach((field) => {
+          initialPredefined[field.name] = { min: "", max: "", unit: "" };
+        });
+        setEditProductRanges((prev) => ({
+          ...prev,
+          [testName]: { predefined: initialPredefined, custom: [] },
+        }));
+      }
+    }
+  };
+
+  const addEditCustomField = (testName) => {
+    const newId = Date.now();
+    setEditProductRanges((prev) => {
+      const testRanges = prev[testName] || { predefined: {}, custom: [] };
+      const updatedCustom = [
+        ...(testRanges.custom || []),
+        { id: newId, fieldName: "", label: "", min: "", max: "", unit: "" },
+      ];
+      return { ...prev, [testName]: { ...testRanges, custom: updatedCustom } };
+    });
+  };
+  const removeEditCustomField = (testName, customId) => {
+    setEditProductRanges((prev) => {
+      const testRanges = prev[testName];
+      if (!testRanges) return prev;
+      const updatedCustom = (testRanges.custom || []).filter(
+        (c) => c.id !== customId,
+      );
+      return { ...prev, [testName]: { ...testRanges, custom: updatedCustom } };
+    });
+  };
+  const updateEditCustomField = (testName, customId, key, value) => {
+    setEditProductRanges((prev) => {
+      const testRanges = prev[testName];
+      const updatedCustom = (testRanges.custom || []).map((c) =>
+        c.id === customId ? { ...c, [key]: value } : c,
+      );
+      return { ...prev, [testName]: { ...testRanges, custom: updatedCustom } };
+    });
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!editProductName.trim()) return alert("Product Name required.");
+    if (!editProductData) return;
+    setIsUpdating(true);
+    try {
+      const testRanges = [];
+      for (const [testName, ranges] of Object.entries(editProductRanges)) {
+        const fields = [];
+        for (const [fieldName, range] of Object.entries(
+          ranges.predefined || {},
+        )) {
+          if (range.min || range.max || range.unit) {
+            fields.push({
+              fieldName,
+              minValue: range.min,
+              maxValue: range.max,
+              unit: range.unit,
+              isCustom: false,
+            });
+          }
+        }
+        for (const custom of ranges.custom || []) {
+          if (
+            custom.min ||
+            custom.max ||
+            custom.unit ||
+            custom.fieldName ||
+            custom.label
+          ) {
+            fields.push({
+              fieldName: custom.fieldName,
+              customLabel: custom.label,
+              minValue: custom.min,
+              maxValue: custom.max,
+              unit: custom.unit,
+              isCustom: true,
+            });
+          }
+        }
+        if (fields.length) testRanges.push({ testName, fields });
+      }
+      const payload = {
+        productName: editProductName,
+        testRanges: testRanges.length ? testRanges : undefined,
+      };
+      const res = await api.put(
+        `/products/${editProductData.id}/ranges`,
+        payload,
+      );
+      if (res.data?.allProducts) setSavedProducts(res.data.allProducts);
+      setIsEditModalOpen(false);
+      setEditProductData(null);
+      alert("Product updated!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Update failed.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // PDF functions
   const addPdfToProduct = async (productId, file) => {
     if (!file) return;
     setPdfUploadLoading(productId);
     try {
-      const formData = new FormData();
-      formData.append("pdfFile", file);
-      const response = await api.put(`/products/${productId}/pdf`, formData, {
+      const fd = new FormData();
+      fd.append("pdfFile", file);
+      const res = await api.put(`/products/${productId}/pdf`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      if (response.data && response.data.allProducts) {
-        setSavedProducts(response.data.allProducts);
-        alert("PDF added successfully!");
-      }
-    } catch (error) {
-      console.error("Error adding PDF:", error);
-      alert(error.response?.data?.error || "Failed to add PDF.");
+      if (res.data?.allProducts) setSavedProducts(res.data.allProducts);
+      alert("PDF added!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to add PDF.");
     } finally {
       setPdfUploadLoading(null);
     }
   };
 
   const deletePdfFromProduct = async (productId) => {
-    if (!window.confirm("Remove PDF from this product?")) return;
+    if (!window.confirm("Remove PDF?")) return;
     setPdfDeleteLoading(productId);
     try {
-      const response = await api.delete(`/products/${productId}/pdf`);
-      if (response.data && response.data.allProducts) {
-        setSavedProducts(response.data.allProducts);
-        alert("PDF removed successfully!");
-      }
-    } catch (error) {
-      console.error("Error deleting PDF:", error);
-      alert(error.response?.data?.error || "Failed to delete PDF.");
+      const res = await api.delete(`/products/${productId}/pdf`);
+      if (res.data?.allProducts) setSavedProducts(res.data.allProducts);
+      alert("PDF removed!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to delete PDF.");
     } finally {
       setPdfDeleteLoading(null);
     }
   };
 
   const deleteProduct = async (id) => {
-    if (!window.confirm("Delete this product? This will also delete its PDF."))
-      return;
+    if (!window.confirm("Delete product? PDF will also be deleted.")) return;
     setProductDeleteLoading(id);
     try {
-      const response = await api.delete(`/products/${id}`);
-      if (response.data && response.data.allProducts) {
-        setSavedProducts(response.data.allProducts);
-        alert("Product deleted successfully!");
-      }
-    } catch (error) {
-      console.error("Error deleting product:", error);
+      const res = await api.delete(`/products/${id}`);
+      if (res.data?.allProducts) setSavedProducts(res.data.allProducts);
+      alert("Product deleted!");
+    } catch (err) {
       alert("Failed to delete product.");
     } finally {
       setProductDeleteLoading(null);
     }
   };
 
-  // ---------- Testing API ----------
+  // ==================== FETCH TESTS ====================
   const fetchAllTests = async () => {
     setTestFetchLoading(true);
     try {
       const response = await api.get("/tests");
       if (response.data && response.data.TESTING_FIELDS) {
-        setAllTestingFilds(response.data.TESTING_FIELDS);
+        const testingFields = response.data.TESTING_FIELDS;
+        const testsArray = Object.keys(testingFields).map((testName) => ({
+          id: testName, // test name as id for UI
+          name: testName,
+          fields: testingFields[testName].map((field) => ({
+            id: field.id,
+            name: field.name,
+            label: field.label,
+            placeholder: field.placeholder,
+          })),
+        }));
+        setAvailableTests(testsArray);
+      } else {
+        console.warn("Unexpected test format", response.data);
+        setAvailableTests([]);
       }
     } catch (error) {
       console.error("Error fetching tests:", error);
@@ -1137,19 +825,7 @@ export default function LabManagement() {
     }
   };
 
-  useEffect(() => {
-    if (Object.keys(allTestingFilds).length > 0) {
-      const tests = Object.keys(allTestingFilds).map((key) => ({
-        id: key,
-        label: key,
-        fields: allTestingFilds[key],
-      }));
-      setAvailableTests(tests);
-    } else {
-      setAvailableTests([]);
-    }
-  }, [allTestingFilds]);
-
+  // ==================== TESTING TAB FUNCTIONS ====================
   const handleToggleTest = (testId) => {
     setSelectedTestIds((prev) =>
       prev.includes(testId)
@@ -1159,11 +835,11 @@ export default function LabManagement() {
     if (!selectedTestIds.includes(testId)) {
       const test = availableTests.find((t) => t.id === testId);
       if (test) {
-        const initialValues = {};
-        test?.fields?.forEach((field) => {
-          initialValues[field?.name] = "";
+        const initial = {};
+        test.fields.forEach((f) => {
+          initial[f.name] = "";
         });
-        setTestValues((prev) => ({ ...prev, [testId]: initialValues }));
+        setTestValues((prev) => ({ ...prev, [testId]: initial }));
       }
     }
   };
@@ -1175,21 +851,19 @@ export default function LabManagement() {
     }));
   };
 
-  const addCustomField = () =>
+  const addCustomFieldTesting = () =>
     setNewTestFields([
       ...newTestFields,
       { name: "", label: "", placeholder: "" },
     ]);
-
-  const removeCustomField = (index) => {
+  const removeCustomFieldTesting = (idx) => {
     const updated = [...newTestFields];
-    updated.splice(index, 1);
+    updated.splice(idx, 1);
     setNewTestFields(updated);
   };
-
-  const updateCustomField = (index, key, value) => {
+  const updateCustomFieldTesting = (idx, key, val) => {
     const updated = [...newTestFields];
-    updated[index][key] = value;
+    updated[idx][key] = val;
     setNewTestFields(updated);
   };
 
@@ -1198,29 +872,21 @@ export default function LabManagement() {
     const invalid = newTestFields.some(
       (f) => !f.name.trim() || !f.label.trim(),
     );
-    if (invalid) {
-      alert("Please fill in both Name and Label for each field.");
-      return;
-    }
+    if (invalid) return alert("Fill Name and Label for each field.");
     setTestCreateLoading(true);
     try {
-      const payload = {
+      await api.post("/create-test", {
         test_name: newTestLabel.trim(),
         fields: newTestFields.map((f) => ({
           name: f.name.trim(),
           label: f.label.trim(),
           placeholder: f.placeholder || "",
         })),
-      };
-      const res = await api.post("/create-test", payload);
-      if (res.status !== 200 && res.status !== 201) {
-        alert(res.data?.error || "Failed to create test");
-        return;
-      }
+      });
       await fetchAllTests();
       setNewTestLabel("");
       setNewTestFields([{ name: "", label: "", placeholder: "" }]);
-      alert("Test created successfully!");
+      alert("Test created!");
     } catch (err) {
       console.error(err);
       alert("Error creating test");
@@ -1237,15 +903,12 @@ export default function LabManagement() {
   };
 
   const handleSaveTesting = () => {
-    if (selectedTestIds.length === 0) {
-      alert("Please select at least one test.");
-      return;
-    }
+    if (selectedTestIds.length === 0) return alert("Select at least one test.");
     const selectedTestsData = selectedTestIds.map((id) => {
       const test = availableTests.find((t) => t.id === id);
       return {
         testId: id,
-        testLabel: test?.label,
+        testLabel: test?.name,
         fields:
           test?.fields.map((f) => ({
             label: f.label,
@@ -1253,12 +916,14 @@ export default function LabManagement() {
           })) || [],
       };
     });
-    const newEntry = {
-      id: Date.now(),
-      savedAt: new Date().toLocaleString(),
-      tests: selectedTestsData,
-    };
-    setSavedTests((prev) => [newEntry, ...prev]);
+    setSavedTests((prev) => [
+      {
+        id: Date.now(),
+        savedAt: new Date().toLocaleString(),
+        tests: selectedTestsData,
+      },
+      ...prev,
+    ]);
     alert(`Saved ${selectedTestsData.length} test(s).`);
     setSelectedTestIds([]);
     setTestValues({});
@@ -1269,12 +934,10 @@ export default function LabManagement() {
     setEditingTestId(entry.id);
     setEditingTestData(JSON.parse(JSON.stringify(entry)));
   };
-
   const cancelEditTest = () => {
     setEditingTestId(null);
     setEditingTestData(null);
   };
-
   const saveEditTest = () => {
     setSavedTests((prev) =>
       prev.map((t) =>
@@ -1285,70 +948,22 @@ export default function LabManagement() {
     );
     cancelEditTest();
   };
-
   const deleteTestEntry = (id) => {
     if (window.confirm("Delete this test configuration?"))
       setSavedTests((prev) => prev.filter((t) => t.id !== id));
   };
-
   const updateEditingTestField = (testIndex, fieldIndex, newValue) => {
     const updated = { ...editingTestData };
     updated.tests[testIndex].fields[fieldIndex].value = newValue;
     setEditingTestData(updated);
   };
 
-  // Initial data load
-  useEffect(() => {
-    handleGetAllCompany();
-    handleGetLab();
-    handleGetProduct();
-    fetchAllTests();
-  }, []);
-
-  // Reset editing when search/sort/page changes for each table
-  useEffect(() => {
-    setEditingCompanyId(null);
-    setEditingCompanyData(null);
-    setCompanyCurrentPage(1);
-  }, [
-    companySearch,
-    companySortField,
-    companySortDirection,
-    companyItemsPerPage,
-  ]);
-
-  useEffect(() => {
-    setEditingLabId(null);
-    setEditingLabData(null);
-    setLabCurrentPage(1);
-  }, [labSearch, labSortField, labSortDirection, labItemsPerPage]);
-
-  useEffect(() => {
-    setProductCurrentPage(1);
-  }, [
-    productSearch,
-    productSortField,
-    productSortDirection,
-    productItemsPerPage,
-  ]);
-
-  useEffect(() => {
-    setTestingCurrentPage(1);
-  }, [
-    testingSearch,
-    testingSortField,
-    testingSortDirection,
-    testingItemsPerPage,
-  ]);
-
-  // Sorting and filtering functions
+  // ==================== SORTING & PAGINATION ====================
   const sortData = (data, field, direction) => {
     if (!field) return data;
     return [...data].sort((a, b) => {
-      let valA = a[field];
-      let valB = b[field];
-
-      // Handle special cases
+      let valA = a[field],
+        valB = b[field];
       if (field === "savedAt") {
         valA = new Date(a.savedAt);
         valB = new Date(b.savedAt);
@@ -1359,16 +974,12 @@ export default function LabManagement() {
         valA = JSON.stringify(a.tests);
         valB = JSON.stringify(b.tests);
       }
-
-      // Handle null/undefined values
       if (valA == null) valA = "";
       if (valB == null) valB = "";
-
       if (typeof valA === "string") {
         valA = valA.toLowerCase();
         valB = valB.toLowerCase();
       }
-
       if (valA < valB) return direction === "asc" ? -1 : 1;
       if (valA > valB) return direction === "asc" ? 1 : -1;
       return 0;
@@ -1377,66 +988,60 @@ export default function LabManagement() {
 
   const filterCompanies = (companies) => {
     if (!companySearch) return companies;
-    const searchLower = companySearch.toLowerCase();
+    const s = companySearch.toLowerCase();
     return companies.filter(
-      (comp) =>
-        comp.companyName?.toLowerCase().includes(searchLower) ||
-        comp.companyCode?.toLowerCase().includes(searchLower) ||
-        comp.gst?.toLowerCase().includes(searchLower) ||
-        comp.phone?.toLowerCase().includes(searchLower) ||
-        comp.adminName?.toLowerCase().includes(searchLower) ||
-        comp.address?.toLowerCase().includes(searchLower),
+      (c) =>
+        c.companyName?.toLowerCase().includes(s) ||
+        c.companyCode?.toLowerCase().includes(s) ||
+        c.gst?.toLowerCase().includes(s) ||
+        c.phone?.toLowerCase().includes(s) ||
+        c.adminName?.toLowerCase().includes(s) ||
+        c.address?.toLowerCase().includes(s),
     );
   };
-
   const filterLabs = (labs) => {
     if (!labSearch) return labs;
-    const searchLower = labSearch.toLowerCase();
+    const s = labSearch.toLowerCase();
     return labs.filter(
-      (lab) =>
-        lab.labName?.toLowerCase().includes(searchLower) ||
-        lab.labCode?.toLowerCase().includes(searchLower) ||
-        lab.gst?.toLowerCase().includes(searchLower) ||
-        lab.phone?.toLowerCase().includes(searchLower) ||
-        lab.adminName?.toLowerCase().includes(searchLower) ||
-        lab.address?.toLowerCase().includes(searchLower) ||
-        lab.labType?.toLowerCase().includes(searchLower),
+      (l) =>
+        l.labName?.toLowerCase().includes(s) ||
+        l.labCode?.toLowerCase().includes(s) ||
+        l.gst?.toLowerCase().includes(s) ||
+        l.phone?.toLowerCase().includes(s) ||
+        l.adminName?.toLowerCase().includes(s) ||
+        l.address?.toLowerCase().includes(s) ||
+        l.labType?.toLowerCase().includes(s),
     );
   };
-
   const filterProducts = (products) => {
     if (!productSearch) return products;
-    const searchLower = productSearch.toLowerCase();
+    const s = productSearch.toLowerCase();
     return products.filter(
-      (prod) =>
-        prod.productName?.toLowerCase().includes(searchLower) ||
-        prod.productId?.toLowerCase().includes(searchLower),
+      (p) =>
+        p.productName?.toLowerCase().includes(s) ||
+        p.productId?.toLowerCase().includes(s),
     );
   };
-
   const filterTests = (tests) => {
     if (!testingSearch) return tests;
-    const searchLower = testingSearch.toLowerCase();
+    const s = testingSearch.toLowerCase();
     return tests.filter(
-      (test) =>
-        JSON.stringify(test.tests).toLowerCase().includes(searchLower) ||
-        test.savedAt?.toLowerCase().includes(searchLower),
+      (t) =>
+        JSON.stringify(t.tests).toLowerCase().includes(s) ||
+        t.savedAt?.toLowerCase().includes(s),
     );
   };
 
-  // Pagination helper
-  const paginateData = (data, page, itemsPerPage) => {
+  const paginate = (data, page, itemsPerPage) => {
     const start = (page - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    return data.slice(start, end);
+    return data.slice(start, start + itemsPerPage);
   };
 
-  // Processed data for each table
   const processedCompanies = useMemo(() => {
     const filtered = filterCompanies(savedCompanies);
     const sorted = sortData(filtered, companySortField, companySortDirection);
     return {
-      data: paginateData(sorted, companyCurrentPage, companyItemsPerPage),
+      data: paginate(sorted, companyCurrentPage, companyItemsPerPage),
       total: filtered.length,
     };
   }, [
@@ -1452,7 +1057,7 @@ export default function LabManagement() {
     const filtered = filterLabs(savedLabs);
     const sorted = sortData(filtered, labSortField, labSortDirection);
     return {
-      data: paginateData(sorted, labCurrentPage, labItemsPerPage),
+      data: paginate(sorted, labCurrentPage, labItemsPerPage),
       total: filtered.length,
     };
   }, [
@@ -1468,7 +1073,7 @@ export default function LabManagement() {
     const filtered = filterProducts(savedProducts);
     const sorted = sortData(filtered, productSortField, productSortDirection);
     return {
-      data: paginateData(sorted, productCurrentPage, productItemsPerPage),
+      data: paginate(sorted, productCurrentPage, productItemsPerPage),
       total: filtered.length,
     };
   }, [
@@ -1484,7 +1089,7 @@ export default function LabManagement() {
     const filtered = filterTests(savedTests);
     const sorted = sortData(filtered, testingSortField, testingSortDirection);
     return {
-      data: paginateData(sorted, testingCurrentPage, testingItemsPerPage),
+      data: paginate(sorted, testingCurrentPage, testingItemsPerPage),
       total: filtered.length,
     };
   }, [
@@ -1505,22 +1110,19 @@ export default function LabManagement() {
   );
 
   const openPdfModal = (pdfPath, productName) => {
-    const fullUrl = getPdfFullUrl(pdfPath);
-    setCurrentPdfUrl(fullUrl);
-    setCurrentPdfName(productName || "PDF Document");
+    setCurrentPdfUrl(getPdfFullUrl(pdfPath));
+    setCurrentPdfName(productName);
     setPdfModalOpen(true);
   };
-
   const closePdfModal = () => {
     setPdfModalOpen(false);
     setCurrentPdfUrl("");
     setCurrentPdfName("");
   };
 
-  // Helper to render sort indicator
   const SortIndicator = ({ field }) => {
-    let isActive = false;
-    let direction = "asc";
+    let isActive = false,
+      direction = "asc";
     if (activeTab === "company") {
       isActive = companySortField === field;
       direction = companySortDirection;
@@ -1542,43 +1144,42 @@ export default function LabManagement() {
 
   const handleSort = (field) => {
     if (activeTab === "company") {
-      if (companySortField === field) {
+      if (companySortField === field)
         setCompanySortDirection(
           companySortDirection === "asc" ? "desc" : "asc",
         );
-      } else {
+      else {
         setCompanySortField(field);
         setCompanySortDirection("asc");
       }
     } else if (activeTab === "lab") {
-      if (labSortField === field) {
+      if (labSortField === field)
         setLabSortDirection(labSortDirection === "asc" ? "desc" : "asc");
-      } else {
+      else {
         setLabSortField(field);
         setLabSortDirection("asc");
       }
     } else if (activeTab === "product") {
-      if (productSortField === field) {
+      if (productSortField === field)
         setProductSortDirection(
           productSortDirection === "asc" ? "desc" : "asc",
         );
-      } else {
+      else {
         setProductSortField(field);
         setProductSortDirection("asc");
       }
     } else if (activeTab === "testing") {
-      if (testingSortField === field) {
+      if (testingSortField === field)
         setTestingSortDirection(
           testingSortDirection === "asc" ? "desc" : "asc",
         );
-      } else {
+      else {
         setTestingSortField(field);
         setTestingSortDirection("asc");
       }
     }
   };
 
-  // Pagination controls component
   const PaginationControls = ({
     currentPage,
     totalItems,
@@ -1590,7 +1191,6 @@ export default function LabManagement() {
     const startItem =
       totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-
     return (
       <div className="lm-pagination">
         <div className="lm-items-per-page">
@@ -1619,15 +1219,11 @@ export default function LabManagement() {
           </button>
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
+            if (totalPages <= 5) pageNum = i + 1;
+            else if (currentPage <= 3) pageNum = i + 1;
+            else if (currentPage >= totalPages - 2)
               pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = currentPage - 2 + i;
-            }
+            else pageNum = currentPage - 2 + i;
             return (
               <button
                 key={pageNum}
@@ -1650,6 +1246,45 @@ export default function LabManagement() {
     );
   };
 
+  // ==================== INITIAL LOAD ====================
+  useEffect(() => {
+    handleGetAllCompany();
+    handleGetLab();
+    handleGetProduct();
+    fetchAllTests();
+  }, []);
+
+  useEffect(() => {
+    setEditingCompanyId(null);
+    setCompanyCurrentPage(1);
+  }, [
+    companySearch,
+    companySortField,
+    companySortDirection,
+    companyItemsPerPage,
+  ]);
+  useEffect(() => {
+    setEditingLabId(null);
+    setLabCurrentPage(1);
+  }, [labSearch, labSortField, labSortDirection, labItemsPerPage]);
+  useEffect(() => {
+    setProductCurrentPage(1);
+  }, [
+    productSearch,
+    productSortField,
+    productSortDirection,
+    productItemsPerPage,
+  ]);
+  useEffect(() => {
+    setTestingCurrentPage(1);
+  }, [
+    testingSearch,
+    testingSortField,
+    testingSortDirection,
+    testingItemsPerPage,
+  ]);
+
+  // ==================== RENDER ====================
   return (
     <>
       <style>{globalStyles}</style>
@@ -1661,7 +1296,6 @@ export default function LabManagement() {
               Manage companies, labs, products, and test configurations
             </p>
           </div>
-
           <div className="lm-tabs">
             <button
               className={`lm-tab ${activeTab === "company" ? "active" : ""}`}
@@ -1699,10 +1333,10 @@ export default function LabManagement() {
                     className="lm-input"
                     value={companyData.companyName}
                     onChange={(e) =>
-                      setCompanyData((prev) => ({
-                        ...prev,
+                      setCompanyData({
+                        ...companyData,
                         companyName: e.target.value,
-                      }))
+                      })
                     }
                   />
                 </div>
@@ -1712,10 +1346,7 @@ export default function LabManagement() {
                     className="lm-input"
                     value={companyData.gst}
                     onChange={(e) =>
-                      setCompanyData((prev) => ({
-                        ...prev,
-                        gst: e.target.value,
-                      }))
+                      setCompanyData({ ...companyData, gst: e.target.value })
                     }
                   />
                 </div>
@@ -1725,10 +1356,10 @@ export default function LabManagement() {
                     className="lm-textarea"
                     value={companyData.address}
                     onChange={(e) =>
-                      setCompanyData((prev) => ({
-                        ...prev,
+                      setCompanyData({
+                        ...companyData,
                         address: e.target.value,
-                      }))
+                      })
                     }
                   />
                 </div>
@@ -1738,10 +1369,7 @@ export default function LabManagement() {
                     className="lm-input"
                     value={companyData.phone}
                     onChange={(e) =>
-                      setCompanyData((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
+                      setCompanyData({ ...companyData, phone: e.target.value })
                     }
                   />
                 </div>
@@ -1751,10 +1379,10 @@ export default function LabManagement() {
                     className="lm-input"
                     value={companyData.adminName}
                     onChange={(e) =>
-                      setCompanyData((prev) => ({
-                        ...prev,
+                      setCompanyData({
+                        ...companyData,
                         adminName: e.target.value,
-                      }))
+                      })
                     }
                   />
                 </div>
@@ -1784,7 +1412,6 @@ export default function LabManagement() {
                   Save Company
                 </button>
               </div>
-
               <div className="lm-search-container">
                 <input
                   type="text"
@@ -1794,7 +1421,6 @@ export default function LabManagement() {
                   onChange={(e) => setCompanySearch(e.target.value)}
                 />
               </div>
-
               <div className="lm-table-wrapper">
                 <table className="lm-table">
                   <thead>
@@ -1911,7 +1537,6 @@ export default function LabManagement() {
                                       setEditingCompanyId(null);
                                       setEditingCompanyData(null);
                                     }}
-                                    disabled={companyEditSaveLoading}
                                   >
                                     ✖️
                                   </button>
@@ -1933,10 +1558,7 @@ export default function LabManagement() {
                                       setEditingCompanyId(comp.id);
                                       setEditingCompanyData({ ...comp });
                                     }}
-                                    disabled={
-                                      companyDeleteLoading === comp.id ||
-                                      companyEditSaveLoading
-                                    }
+                                    disabled={companyDeleteLoading === comp.id}
                                   >
                                     ✏️
                                   </button>
@@ -1970,7 +1592,6 @@ export default function LabManagement() {
                   </tbody>
                 </table>
               </div>
-
               <PaginationControls
                 currentPage={companyCurrentPage}
                 totalItems={processedCompanies.total}
@@ -1991,10 +1612,7 @@ export default function LabManagement() {
                     className="lm-input"
                     value={labData.labName}
                     onChange={(e) =>
-                      setLabData((prev) => ({
-                        ...prev,
-                        labName: e.target.value,
-                      }))
+                      setLabData({ ...labData, labName: e.target.value })
                     }
                   />
                 </div>
@@ -2004,7 +1622,7 @@ export default function LabManagement() {
                     className="lm-input"
                     value={labData.gst}
                     onChange={(e) =>
-                      setLabData((prev) => ({ ...prev, gst: e.target.value }))
+                      setLabData({ ...labData, gst: e.target.value })
                     }
                   />
                 </div>
@@ -2014,10 +1632,7 @@ export default function LabManagement() {
                     className="lm-textarea"
                     value={labData.address}
                     onChange={(e) =>
-                      setLabData((prev) => ({
-                        ...prev,
-                        address: e.target.value,
-                      }))
+                      setLabData({ ...labData, address: e.target.value })
                     }
                   />
                 </div>
@@ -2027,7 +1642,7 @@ export default function LabManagement() {
                     className="lm-input"
                     value={labData.phone}
                     onChange={(e) =>
-                      setLabData((prev) => ({ ...prev, phone: e.target.value }))
+                      setLabData({ ...labData, phone: e.target.value })
                     }
                   />
                 </div>
@@ -2037,10 +1652,7 @@ export default function LabManagement() {
                     className="lm-input"
                     value={labData.adminName}
                     onChange={(e) =>
-                      setLabData((prev) => ({
-                        ...prev,
-                        adminName: e.target.value,
-                      }))
+                      setLabData({ ...labData, adminName: e.target.value })
                     }
                   />
                 </div>
@@ -2050,10 +1662,7 @@ export default function LabManagement() {
                     className="lm-select"
                     value={labData.labType}
                     onChange={(e) =>
-                      setLabData((prev) => ({
-                        ...prev,
-                        labType: e.target.value,
-                      }))
+                      setLabData({ ...labData, labType: e.target.value })
                     }
                   >
                     <option value="">Select type</option>
@@ -2084,11 +1693,10 @@ export default function LabManagement() {
                   onClick={handleSaveLab}
                   disabled={labSaveLoading}
                 >
-                  {labSaveLoading && <CircularLoader size="sm" inline />}
-                  Save Lab
+                  {labSaveLoading && <CircularLoader size="sm" inline />}Save
+                  Lab
                 </button>
               </div>
-
               <div className="lm-search-container">
                 <input
                   type="text"
@@ -2098,7 +1706,6 @@ export default function LabManagement() {
                   onChange={(e) => setLabSearch(e.target.value)}
                 />
               </div>
-
               <div className="lm-table-wrapper">
                 <table className="lm-table">
                   <thead>
@@ -2236,7 +1843,6 @@ export default function LabManagement() {
                                       setEditingLabId(null);
                                       setEditingLabData(null);
                                     }}
-                                    disabled={labEditSaveLoading}
                                   >
                                     ✖️
                                   </button>
@@ -2263,10 +1869,7 @@ export default function LabManagement() {
                                       setEditingLabId(lab.id);
                                       setEditingLabData({ ...lab });
                                     }}
-                                    disabled={
-                                      labDeleteLoading === lab.id ||
-                                      labEditSaveLoading
-                                    }
+                                    disabled={labDeleteLoading === lab.id}
                                   >
                                     ✏️
                                   </button>
@@ -2299,7 +1902,6 @@ export default function LabManagement() {
                   </tbody>
                 </table>
               </div>
-
               <PaginationControls
                 currentPage={labCurrentPage}
                 totalItems={processedLabs.total}
@@ -2310,7 +1912,7 @@ export default function LabManagement() {
             </div>
           )}
 
-          {/* PRODUCT TAB with PDF modal */}
+          {/* PRODUCT TAB */}
           {activeTab === "product" && (
             <div className="lm-panel">
               <div className="lm-form-grid">
@@ -2326,10 +1928,284 @@ export default function LabManagement() {
                   />
                 </div>
               </div>
+
+              {/* ========== IMPROVED "Define Test Ranges for this Product" SECTION ========== */}
+              <div className="lm-test-section" style={{ marginTop: "1.5rem" }}>
+                <div className="lm-test-heading">
+                  📊 Define Test Ranges for this Product
+                </div>
+                {testFetchLoading ? (
+                  <div className="lm-loader-container">
+                    <CircularLoader />
+                  </div>
+                ) : availableTests.length === 0 ? (
+                  <p style={{ color: "#64748b", padding: "1rem" }}>
+                    No tests available. Please create tests in the Testing tab
+                    first.
+                  </p>
+                ) : (
+                  <div className="lm-tests-grid">
+                    {availableTests.map((test) => (
+                      <div key={test.id} className="lm-test-card">
+                        <div className="lm-test-card-header">
+                          <div className="lm-checkbox-item">
+                            <input
+                              type="checkbox"
+                              id={`range-test-${test.id}`}
+                              checked={selectedRangeTestIds.includes(test.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRangeTestIds((prev) => [
+                                    ...prev,
+                                    test.id,
+                                  ]);
+                                  const initial = {};
+                                  test.fields.forEach((f) => {
+                                    initial[f.name] = {
+                                      min: "",
+                                      max: "",
+                                      unit: "",
+                                    };
+                                  });
+                                  setProductRanges((prev) => ({
+                                    ...prev,
+                                    [test.id]: {
+                                      predefined: initial,
+                                      custom: [],
+                                    },
+                                  }));
+                                } else {
+                                  setSelectedRangeTestIds((prev) =>
+                                    prev.filter((id) => id !== test.id),
+                                  );
+                                  setProductRanges((prev) => {
+                                    const newRanges = { ...prev };
+                                    delete newRanges[test.id];
+                                    return newRanges;
+                                  });
+                                }
+                              }}
+                            />
+                            <label htmlFor={`range-test-${test.id}`}>
+                              {test.name}
+                            </label>
+                          </div>
+                        </div>
+
+                        {selectedRangeTestIds.includes(test.id) && (
+                          <div className="lm-test-card-body">
+                            {/* Predefined fields */}
+                            {test.fields.map((field) => (
+                              <div key={field.id} className="lm-range-field">
+                                <label className="lm-label">
+                                  {field.label}
+                                </label>
+                                <div className="lm-range-inputs">
+                                  <input
+                                    className="lm-input"
+                                    placeholder="Min"
+                                    value={
+                                      productRanges[test.id]?.predefined?.[
+                                        field.name
+                                      ]?.min || ""
+                                    }
+                                    onChange={(e) =>
+                                      setProductRanges((prev) => ({
+                                        ...prev,
+                                        [test.id]: {
+                                          ...prev[test.id],
+                                          predefined: {
+                                            ...prev[test.id]?.predefined,
+                                            [field.name]: {
+                                              ...prev[test.id]?.predefined?.[
+                                                field.name
+                                              ],
+                                              min: e.target.value,
+                                            },
+                                          },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                  <span className="lm-range-dash">–</span>
+                                  <input
+                                    className="lm-input"
+                                    placeholder="Max"
+                                    value={
+                                      productRanges[test.id]?.predefined?.[
+                                        field.name
+                                      ]?.max || ""
+                                    }
+                                    onChange={(e) =>
+                                      setProductRanges((prev) => ({
+                                        ...prev,
+                                        [test.id]: {
+                                          ...prev[test.id],
+                                          predefined: {
+                                            ...prev[test.id]?.predefined,
+                                            [field.name]: {
+                                              ...prev[test.id]?.predefined?.[
+                                                field.name
+                                              ],
+                                              max: e.target.value,
+                                            },
+                                          },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                  <input
+                                    className="lm-input lm-input-unit"
+                                    placeholder="Unit"
+                                    value={
+                                      productRanges[test.id]?.predefined?.[
+                                        field.name
+                                      ]?.unit || ""
+                                    }
+                                    onChange={(e) =>
+                                      setProductRanges((prev) => ({
+                                        ...prev,
+                                        [test.id]: {
+                                          ...prev[test.id],
+                                          predefined: {
+                                            ...prev[test.id]?.predefined,
+                                            [field.name]: {
+                                              ...prev[test.id]?.predefined?.[
+                                                field.name
+                                              ],
+                                              unit: e.target.value,
+                                            },
+                                          },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Custom fields */}
+                            <div className="lm-custom-section">
+                              <div className="lm-custom-header">
+                                <span className="lm-label">
+                                  ➕ Custom Fields
+                                </span>
+                                <button
+                                  type="button"
+                                  className="lm-btn-outline"
+                                  onClick={() => addCustomFieldToTest(test.id)}
+                                >
+                                  + Add Field
+                                </button>
+                              </div>
+                              {(productRanges[test.id]?.custom || []).map(
+                                (custom) => (
+                                  <div
+                                    key={custom.id}
+                                    className="lm-custom-field-card"
+                                  >
+                                    <div className="lm-custom-field-row">
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Field Name"
+                                        value={custom.fieldName}
+                                        onChange={(e) =>
+                                          updateCustomFieldInTest(
+                                            test.id,
+                                            custom.id,
+                                            "fieldName",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Label"
+                                        value={custom.label}
+                                        onChange={(e) =>
+                                          updateCustomFieldInTest(
+                                            test.id,
+                                            custom.id,
+                                            "label",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <button
+                                        className="lm-icon-btn"
+                                        onClick={() =>
+                                          removeCustomFieldFromTest(
+                                            test.id,
+                                            custom.id,
+                                          )
+                                        }
+                                        style={{ color: "#dc2626" }}
+                                      >
+                                        ✖️
+                                      </button>
+                                    </div>
+                                    <div className="lm-range-inputs">
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Min"
+                                        value={custom.min}
+                                        onChange={(e) =>
+                                          updateCustomFieldInTest(
+                                            test.id,
+                                            custom.id,
+                                            "min",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <span className="lm-range-dash">–</span>
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Max"
+                                        value={custom.max}
+                                        onChange={(e) =>
+                                          updateCustomFieldInTest(
+                                            test.id,
+                                            custom.id,
+                                            "max",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <input
+                                        className="lm-input lm-input-unit"
+                                        placeholder="Unit"
+                                        value={custom.unit}
+                                        onChange={(e) =>
+                                          updateCustomFieldInTest(
+                                            test.id,
+                                            custom.id,
+                                            "unit",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="lm-actions">
                 <button
                   className="lm-btn-secondary"
-                  onClick={() => setProductData({ productName: "" })}
+                  onClick={() => {
+                    setProductData({ productName: "" });
+                    setSelectedRangeTestIds([]);
+                    setProductRanges({});
+                  }}
                   disabled={productSaveLoading}
                 >
                   Clear
@@ -2343,7 +2219,6 @@ export default function LabManagement() {
                   Save Product
                 </button>
               </div>
-
               <div className="lm-search-container">
                 <input
                   type="text"
@@ -2353,7 +2228,6 @@ export default function LabManagement() {
                   onChange={(e) => setProductSearch(e.target.value)}
                 />
               </div>
-
               <div className="lm-table-wrapper">
                 <table className="lm-table">
                   <thead>
@@ -2365,6 +2239,7 @@ export default function LabManagement() {
                         Product ID <SortIndicator field="productId" />
                       </th>
                       <th>PDF Document</th>
+                      <th>Ranges</th>
                       <th onClick={() => handleSort("savedAt")}>
                         Saved At <SortIndicator field="savedAt" />
                       </th>
@@ -2434,6 +2309,22 @@ export default function LabManagement() {
                                 </button>
                               )}
                             </td>
+                            <td>
+                              <button
+                                className="lm-icon-btn"
+                                onClick={() => setViewRangesProduct(prod)}
+                                title="View ranges"
+                              >
+                                📊
+                              </button>
+                              <button
+                                className="lm-icon-btn"
+                                onClick={() => openEditModal(prod)}
+                                title="Edit product"
+                              >
+                                ✏️
+                              </button>
+                            </td>
                             <td>{convertToIST(prod.savedAt)}</td>
                             <td className="lm-action-buttons">
                               <button
@@ -2455,7 +2346,7 @@ export default function LabManagement() {
                       processedProducts.data.length === 0 && (
                         <tr>
                           <td
-                            colSpan="5"
+                            colSpan="6"
                             style={{ textAlign: "center", padding: "2rem" }}
                           >
                             No products found
@@ -2465,7 +2356,6 @@ export default function LabManagement() {
                   </tbody>
                 </table>
               </div>
-
               <PaginationControls
                 currentPage={productCurrentPage}
                 totalItems={processedProducts.total}
@@ -2491,17 +2381,16 @@ export default function LabManagement() {
                       <div key={test.id} className="lm-checkbox-item">
                         <input
                           type="checkbox"
-                          id={test.id}
+                          id={test.id.toString()}
                           checked={selectedTestIds.includes(test.id)}
                           onChange={() => handleToggleTest(test.id)}
                         />
-                        <label htmlFor={test.id}>{test.label}</label>
+                        <label htmlFor={test.id.toString()}>{test.name}</label>
                       </div>
                     ))
                   )}
                 </div>
               </div>
-
               <div className="lm-new-test">
                 <div className="lm-new-test-title">➕ Create New Test</div>
                 <div className="lm-row">
@@ -2515,9 +2404,7 @@ export default function LabManagement() {
                   </div>
                 </div>
                 <div style={{ marginBottom: "1rem" }}>
-                  <label className="lm-label">
-                    Test Fields (Name, Label, Placeholder)
-                  </label>
+                  <label className="lm-label">Test Fields</label>
                   {newTestFields.map((field, idx) => (
                     <div key={idx} className="lm-dynamic-field-row">
                       <div className="lm-field">
@@ -2526,7 +2413,11 @@ export default function LabManagement() {
                           placeholder="Field name"
                           value={field.name}
                           onChange={(e) =>
-                            updateCustomField(idx, "name", e.target.value)
+                            updateCustomFieldTesting(
+                              idx,
+                              "name",
+                              e.target.value,
+                            )
                           }
                         />
                       </div>
@@ -2536,7 +2427,11 @@ export default function LabManagement() {
                           placeholder="Label"
                           value={field.label}
                           onChange={(e) =>
-                            updateCustomField(idx, "label", e.target.value)
+                            updateCustomFieldTesting(
+                              idx,
+                              "label",
+                              e.target.value,
+                            )
                           }
                         />
                       </div>
@@ -2546,7 +2441,7 @@ export default function LabManagement() {
                           placeholder="Placeholder"
                           value={field.placeholder}
                           onChange={(e) =>
-                            updateCustomField(
+                            updateCustomFieldTesting(
                               idx,
                               "placeholder",
                               e.target.value,
@@ -2556,7 +2451,7 @@ export default function LabManagement() {
                       </div>
                       <button
                         className="lm-btn-outline"
-                        onClick={() => removeCustomField(idx)}
+                        onClick={() => removeCustomFieldTesting(idx)}
                         disabled={
                           newTestFields.length === 1 || testCreateLoading
                         }
@@ -2567,7 +2462,7 @@ export default function LabManagement() {
                   ))}
                   <button
                     className="lm-btn-outline"
-                    onClick={addCustomField}
+                    onClick={addCustomFieldTesting}
                     style={{ marginTop: "0.5rem" }}
                     disabled={testCreateLoading}
                   >
@@ -2583,7 +2478,6 @@ export default function LabManagement() {
                   Create Test
                 </button>
               </div>
-
               {selectedTestIds.length > 0 && (
                 <div className="lm-test-section">
                   <div className="lm-test-heading">📋 Test Parameters</div>
@@ -2600,11 +2494,11 @@ export default function LabManagement() {
                             fontWeight: 600,
                           }}
                         >
-                          {test.label}
+                          {test.name}
                         </h3>
                         <div className="lm-form-grid">
                           {test.fields.map((field) => (
-                            <div key={field.name} className="lm-field">
+                            <div key={field.id} className="lm-field">
                               <label className="lm-label">{field.label}</label>
                               <input
                                 className="lm-input"
@@ -2638,7 +2532,6 @@ export default function LabManagement() {
                   Apply Testing
                 </button>
               </div>
-
               {savedTests.length > 0 && (
                 <>
                   <div className="lm-search-container">
@@ -2799,6 +2692,341 @@ export default function LabManagement() {
           </div>
         </div>
       )}
+
+      {/* Ranges View Modal */}
+      {viewRangesProduct && (
+        <div
+          className="lm-modal-overlay"
+          onClick={() => setViewRangesProduct(null)}
+        >
+          <div
+            className="lm-modal"
+            style={{ maxWidth: "600px", height: "auto", maxHeight: "80%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="lm-modal-header">
+              <h3>Test Ranges for {viewRangesProduct.productName}</h3>
+              <button
+                className="lm-modal-close"
+                onClick={() => setViewRangesProduct(null)}
+              >
+                <IoCloseSharp size={25} />
+              </button>
+            </div>
+            <div className="lm-modal-body">
+              {viewRangesProduct.testRanges?.length ? (
+                viewRangesProduct.testRanges.map((tr, idx) => (
+                  <div key={idx} style={{ marginBottom: "1rem" }}>
+                    <strong>{tr.testName || tr.testId}</strong>
+                    <ul>
+                      {tr.fields.map((f, i) => (
+                        <li key={i}>
+                          {f.label || f.fieldName}:{" "}
+                          {f.minValue && f.maxValue
+                            ? `${f.minValue} – ${f.maxValue} ${f.unit || ""}`
+                            : f.minValue || f.maxValue || "No range defined"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              ) : (
+                <p>No ranges defined for this product.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PRODUCT MODAL - IMPROVED UI */}
+      {isEditModalOpen && editProductData && (
+        <div
+          className="lm-modal-overlay"
+          onClick={() => setIsEditModalOpen(false)}
+        >
+          <div
+            className="lm-modal"
+            style={{
+              maxWidth: "1250px",
+              height: "auto",
+              maxHeight: "90%",
+              overflow: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="lm-modal-header">
+              <h3>Edit Product: {editProductData.productName}</h3>
+              <button
+                className="lm-modal-close"
+                onClick={() => setIsEditModalOpen(false)}
+              >
+                <IoCloseSharp size={25} />
+              </button>
+            </div>
+            <div className="lm-modal-body">
+              {/* Product Name Field */}
+              <div className="lm-field lm-full-width">
+                <label className="lm-label">Product Name</label>
+                <input
+                  className="lm-input"
+                  value={editProductName}
+                  onChange={(e) => setEditProductName(e.target.value)}
+                />
+              </div>
+
+              {/* Test Ranges Section - Improved Card Layout */}
+              <div className="lm-test-section" style={{ marginTop: "1.5rem" }}>
+                <div className="lm-test-heading">📊 Edit Test Ranges</div>
+                {testFetchLoading ? (
+                  <div className="lm-loader-container">
+                    <CircularLoader />
+                  </div>
+                ) : (
+                  <div className="lm-tests-grid">
+                    {availableTests.map((test) => (
+                      <div key={test.id} className="lm-test-card">
+                        <div className="lm-test-card-header">
+                          <div className="lm-checkbox-item">
+                            <input
+                              type="checkbox"
+                              id={`edit-test-${test.id}`}
+                              checked={editSelectedTests.includes(test.id)}
+                              onChange={() => toggleEditTest(test.id)}
+                            />
+                            <label htmlFor={`edit-test-${test.id}`}>
+                              {test.name}
+                            </label>
+                          </div>
+                        </div>
+
+                        {editSelectedTests.includes(test.id) && (
+                          <div className="lm-test-card-body">
+                            {/* Predefined fields */}
+                            {test.fields.map((field) => (
+                              <div key={field.id} className="lm-range-field">
+                                <label className="lm-label">
+                                  {field.label}
+                                </label>
+                                <div className="lm-range-inputs">
+                                  <input
+                                    className="lm-input"
+                                    placeholder="Min"
+                                    value={
+                                      editProductRanges[test.id]?.predefined?.[
+                                        field.name
+                                      ]?.min || ""
+                                    }
+                                    onChange={(e) =>
+                                      setEditProductRanges((prev) => ({
+                                        ...prev,
+                                        [test.id]: {
+                                          ...prev[test.id],
+                                          predefined: {
+                                            ...prev[test.id]?.predefined,
+                                            [field.name]: {
+                                              ...prev[test.id]?.predefined?.[
+                                                field.name
+                                              ],
+                                              min: e.target.value,
+                                            },
+                                          },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                  <span className="lm-range-dash">–</span>
+                                  <input
+                                    className="lm-input"
+                                    placeholder="Max"
+                                    value={
+                                      editProductRanges[test.id]?.predefined?.[
+                                        field.name
+                                      ]?.max || ""
+                                    }
+                                    onChange={(e) =>
+                                      setEditProductRanges((prev) => ({
+                                        ...prev,
+                                        [test.id]: {
+                                          ...prev[test.id],
+                                          predefined: {
+                                            ...prev[test.id]?.predefined,
+                                            [field.name]: {
+                                              ...prev[test.id]?.predefined?.[
+                                                field.name
+                                              ],
+                                              max: e.target.value,
+                                            },
+                                          },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                  <input
+                                    className="lm-input lm-input-unit"
+                                    placeholder="Unit"
+                                    value={
+                                      editProductRanges[test.id]?.predefined?.[
+                                        field.name
+                                      ]?.unit || ""
+                                    }
+                                    onChange={(e) =>
+                                      setEditProductRanges((prev) => ({
+                                        ...prev,
+                                        [test.id]: {
+                                          ...prev[test.id],
+                                          predefined: {
+                                            ...prev[test.id]?.predefined,
+                                            [field.name]: {
+                                              ...prev[test.id]?.predefined?.[
+                                                field.name
+                                              ],
+                                              unit: e.target.value,
+                                            },
+                                          },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Custom fields section */}
+                            <div className="lm-custom-section">
+                              <div className="lm-custom-header">
+                                <span className="lm-label">
+                                  ➕ Custom Fields
+                                </span>
+                                <button
+                                  type="button"
+                                  className="lm-btn-outline"
+                                  onClick={() => addEditCustomField(test.id)}
+                                >
+                                  + Add Field
+                                </button>
+                              </div>
+                              {(editProductRanges[test.id]?.custom || []).map(
+                                (custom) => (
+                                  <div
+                                    key={custom.id}
+                                    className="lm-custom-field-card"
+                                  >
+                                    <div className="lm-custom-field-row">
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Field Name"
+                                        value={custom.fieldName}
+                                        onChange={(e) =>
+                                          updateEditCustomField(
+                                            test.id,
+                                            custom.id,
+                                            "fieldName",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Label"
+                                        value={custom.label}
+                                        onChange={(e) =>
+                                          updateEditCustomField(
+                                            test.id,
+                                            custom.id,
+                                            "label",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <button
+                                        className="lm-icon-btn"
+                                        onClick={() =>
+                                          removeEditCustomField(
+                                            test.id,
+                                            custom.id,
+                                          )
+                                        }
+                                        style={{ color: "#dc2626" }}
+                                      >
+                                        ✖️
+                                      </button>
+                                    </div>
+                                    <div className="lm-range-inputs">
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Min"
+                                        value={custom.min}
+                                        onChange={(e) =>
+                                          updateEditCustomField(
+                                            test.id,
+                                            custom.id,
+                                            "min",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <span className="lm-range-dash">–</span>
+                                      <input
+                                        className="lm-input"
+                                        placeholder="Max"
+                                        value={custom.max}
+                                        onChange={(e) =>
+                                          updateEditCustomField(
+                                            test.id,
+                                            custom.id,
+                                            "max",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                      <input
+                                        className="lm-input lm-input-unit"
+                                        placeholder="Unit"
+                                        value={custom.unit}
+                                        onChange={(e) =>
+                                          updateEditCustomField(
+                                            test.id,
+                                            custom.id,
+                                            "unit",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div
+              className="lm-actions"
+              style={{ marginBottom: "10px", marginRight: "10px" }}
+            >
+              <button
+                className="lm-btn-secondary"
+                onClick={() => setIsEditModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="lm-btn-primary"
+                onClick={handleUpdateProduct}
+                disabled={isUpdating}
+              >
+                {isUpdating && <CircularLoader size="sm" inline />}Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* EDIT PRODUCT MODAL */}
     </>
   );
 }

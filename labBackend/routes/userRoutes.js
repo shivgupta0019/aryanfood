@@ -43,6 +43,8 @@ const {
   createTest,
   addPdfToProduct,
   deletePdfFromProduct,
+  updateProductRanges,
+  getProductRanges,
 } = require("../controllers/useAdminLab");
 const {
   getProfile,
@@ -101,6 +103,8 @@ router.put(
   productUpload.single("pdfFile"),
   addPdfToProduct,
 );
+router.get("/products/:id/ranges", getProductRanges);
+router.put("/products/:id/ranges", updateProductRanges);
 router.delete("/products/:id/pdf", deletePdfFromProduct);
 router.get("/tests", getAllTest);
 router.post("/create-test", createTest);

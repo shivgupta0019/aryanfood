@@ -11,7 +11,7 @@ import {
   FaListAlt,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../../api/axiosConfig";
+import api, { baseURL } from "../../api/axiosConfig";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ export default function Dashboard() {
 
   // ✅ BODY PADDING
   useEffect(() => {
-    document.body.style.paddingTop = `${NAVBAR_H}px`;
+    document.body.style.paddingTop = `${0}px`;
     return () => {
       document.body.style.paddingTop = "";
     };
@@ -89,7 +89,7 @@ export default function Dashboard() {
       try {
         const token = localStorage.getItem("token");
 
-          const res = await api.get("/profile", {
+        const res = await api.get("/profile", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -131,9 +131,9 @@ export default function Dashboard() {
           { to: "/allreports", icon: FaFileAlt, label: "All Report" },
         ]
       : []),
-    { to: "/centrallab", icon: FaFlask, label: "Labs Report" },
-    { to: "/project", icon: FaVial, label: "R&D" },
-    { to: "/result", icon: FaChartLine, label: "Result" },
+    // { to: "/centrallab", icon: FaFlask, label: "Labs Report" },
+    // { to: "/project", icon: FaVial, label: "R&D" },
+    // { to: "/result", icon: FaChartLine, label: "Result" },
     { to: "/alltrf", icon: FaListAlt, label: "All Test Requests" },
   ];
 
@@ -149,7 +149,6 @@ export default function Dashboard() {
     <>
       <nav
         style={{
-          position: "fixed",
           top: 0,
           left: 0,
           right: 0,
@@ -259,21 +258,21 @@ export default function Dashboard() {
                 userSelect: "none",
               }}
             >
-           {profile.photo ? (
-  <img
-    src={`http://localhost:5000${profile.photo}`}
-    alt="avatar"
-    style={{
-      width: "35px",
-      height: "35px",
-      borderRadius: "50%",
-      objectFit: "cover",
-      border: "2px solid #185fa5",
-    }}
-  />
-) : (
-  <FaUserCircle style={{ fontSize: "35px", color: "#555" }} />
-)}
+              {profile.photo ? (
+                <img
+                  src={`${baseURL}${profile.photo}`}
+                  alt="avatar"
+                  style={{
+                    width: "35px",
+                    height: "35px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid #185fa5",
+                  }}
+                />
+              ) : (
+                <FaUserCircle style={{ fontSize: "35px", color: "#555" }} />
+              )}
               <div
                 style={{
                   display: "flex",
