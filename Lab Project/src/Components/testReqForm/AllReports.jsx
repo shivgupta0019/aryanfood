@@ -48,22 +48,7 @@ const formatDate = (isoString) => {
   if (!isoString) return "-";
   return new Date(isoString).toLocaleString();
 };
-function DateFormat(dateString) {
-  console.log(dateString);
 
-  const date = new Date(dateString);
-
-  return date.toLocaleString("en-US", {
-    timeZone: "Asia/Kolkata", // India Time
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-}
 const getPdfFullUrl = (relativePath) => {
   if (!relativePath) return null;
   if (relativePath.startsWith("http")) return relativePath;
