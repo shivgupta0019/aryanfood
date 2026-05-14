@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import api from "../../api/axiosConfig";
 
 const Spinner = ({ size = 20, color = "#000000" }) => (
@@ -15,6 +15,7 @@ const Spinner = ({ size = 20, color = "#000000" }) => (
   />
 );
 
+// Inject spinner styles
 if (
   typeof document !== "undefined" &&
   !document.querySelector("#spinner-style")
@@ -44,30 +45,189 @@ if (
 }
 
 const formatDate = (isoString) => {
-  if (!isoString) return "N/A";
+  if (!isoString) return "-";
   return new Date(isoString).toLocaleString();
 };
+function DateFormat(dateString) {
+  console.log(dateString);
 
-// ========== View Modal (Read-only) ==========
-const ViewModal = ({ trf, onClose }) => {
-  const [details, setDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    setLoading(true);
-    api
-      .get(`/trf/user/${trf.id}`)
-      .then((res) => setDetails(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [trf.id]);
+  const date = new Date(dateString);
+
+  return date.toLocaleString("en-US", {
+    timeZone: "Asia/Kolkata", // India Time
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+}
+const getPdfFullUrl = (relativePath) => {
+  if (!relativePath) return null;
+  if (relativePath.startsWith("http")) return relativePath;
+  const backendBase =
+    api.defaults.baseURL?.replace(/\/api$/, "") || "http://localhost:5000";
+  const cleanBase = backendBase.replace(/\/$/, "");
+  const path = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
+  return `${cleanBase}${path}`;
+};
+
+// ========== PDF Modal (for product PDF) ==========
+const PdfModal = ({ pdfUrl, productName, onClose }) => {
+  const iframeRef = React.useRef(null);
+  const handlePrint = () => {
+    if (iframeRef.current) {
+      try {
+        iframeRef.current.contentWindow.print();
+      } catch (e) {
+        alert("Print not available. Please download the PDF first.");
+      }
+    }
+  };
+  if (!pdfUrl) return null;
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h2 style={styles.modalTitle}>📄 Test Request Report</h2>
-          <button style={styles.modalCloseBtn} onClick={onClose}>
-            ×
+      <div
+        style={{ ...styles.modalContent, maxWidth: "80vw", width: "75vw" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={styles.modalHeader}>{/* minimalist header */}</div>
+        <div style={{ ...styles.modalBody, height: "70vh", padding: 0 }}>
+          <iframe
+            ref={iframeRef}
+            src={pdfUrl}
+            title="Product PDF"
+            style={{ width: "100%", height: "100%", border: "none" }}
+          />
+        </div>
+        <div style={styles.modalFooter}>
+          <button onClick={onClose} style={styles.closeModalBtn}>
+            Close
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ========== IMPROVED ViewModal with professional report layout and PDF download ==========
+const ViewModal = ({ trf, onClose, allProducts }) => {
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [productRanges, setProductRanges] = useState(null);
+  const reportRef = useRef(null);
+
+  // Dynamically load html2pdf if not present
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.html2pdf) {
+      const script = document.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/trf/user/${trf.id}`);
+        setDetails(res.data);
+
+        const product = allProducts.find(
+          (p) => p.productName === trf.productName,
+        );
+        if (!product || !product.id) {
+          console.warn("Product not found for ranges:", trf.productName);
+          setProductRanges(null);
+          return;
+        }
+
+        const productRes = await api.get(`/products/${product.id}/ranges`);
+        const rangesMap = {};
+        if (productRes.data && productRes.data.testRanges) {
+          productRes.data.testRanges.forEach((tr) => {
+            rangesMap[tr.testName] = {};
+            tr.fields.forEach((f) => {
+              rangesMap[tr.testName][f.label] = {
+                min: f.minValue,
+                max: f.maxValue,
+                unit: f.unit,
+              };
+            });
+          });
+        }
+        setProductRanges(rangesMap);
+      } catch (err) {
+        console.error(err);
+        setProductRanges(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (trf && allProducts.length > 0) {
+      fetchData();
+    }
+  }, [trf, allProducts]);
+
+  const isValueInRange = (testName, fieldLabel, value) => {
+    if (!productRanges || !productRanges[testName]) return null;
+    const range = productRanges[testName][fieldLabel];
+    if (!range || (!range.min && !range.max)) return null;
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return null;
+    let valid = true;
+    if (range.min && numValue < parseFloat(range.min)) valid = false;
+    if (range.max && numValue > parseFloat(range.max)) valid = false;
+    return { valid, min: range.min, max: range.max, unit: range.unit };
+  };
+
+  // PDF download using html2pdf
+  const downloadPDF = async () => {
+    if (!reportRef.current) return;
+    if (typeof window === "undefined" || !window.html2pdf) {
+      alert("PDF generator is still loading. Please try again in a moment.");
+      return;
+    }
+    const element = reportRef.current;
+    const opt = {
+      margin: [0.0, 0.2, 0.2, 0.2],
+      filename: `Test_Report_${trf.trfCode}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, letterRendering: true },
+      jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+    };
+    try {
+      await window.html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error("PDF generation failed", err);
+      alert("Failed to generate PDF. Please try again.");
+    }
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div
+        style={{ ...styles.modalContent, maxWidth: "1000px", width: "90%" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={styles.modalHeader}>
+          <h2 style={styles.modalTitle}>📋 Test Request Report</h2>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <button
+              onClick={downloadPDF}
+              style={styles.downloadPdfBtn}
+              disabled={loading || !details}
+            >
+              📥 Download PDF
+            </button>
+            <button style={styles.modalCloseBtn} onClick={onClose}>
+              ×
+            </button>
+          </div>
         </div>
         <div style={styles.modalBody}>
           {loading ? (
@@ -76,61 +236,178 @@ const ViewModal = ({ trf, onClose }) => {
               <p>Loading details...</p>
             </div>
           ) : (
-            <>
-              <div style={styles.modalSection}>
-                <h3>🏢 Company & Request</h3>
-                <div style={styles.infoGrid}>
-                  <div>
+            <div ref={reportRef} style={styles.reportContainer}>
+              {/* Header Section */}
+              <div style={styles.reportHeader}>
+                <div style={styles.reportTitleSection}>
+                  <h1 style={styles.reportTitle}>TEST REPORT</h1>
+                </div>
+                {/* <div style={styles.reportLogo}>
+                  <span style={styles.logoText}>🔬 MEDILAB</span>
+                </div> */}
+              </div>
+
+              {/* Patient & Request Info */}
+              <div style={styles.infoCards}>
+                <div style={styles.infoCard}>
+                  <h3 style={styles.infoCardTitle}>Patient Information</h3>
+                  <div style={styles.infoRow}>
                     <strong>TRF Code:</strong> {details.trf.trfCode}
                   </div>
-                  <div>
+                  <div style={styles.infoRow}>
                     <strong>Company:</strong> {details.trf.companyName}
                   </div>
-                  <div>
-                    <strong>Request:</strong> {details.trf.requestName}
+                  <div style={styles.infoRow}>
+                    <strong>Company Code:</strong> {details.trf.companyCode}
                   </div>
-                  <div>
-                    <strong>Lab:</strong> {details.trf.labName} (
-                    {details.trf.labType})
+                  <div style={styles.infoRow}>
+                    <strong>Company:</strong> {details.trf.companyName}
                   </div>
-                  <div>
+                  <div style={styles.infoRow}>
+                    <strong>Request Name:</strong> {details.trf.requestName}
+                  </div>
+                  <div style={styles.infoRow}>
                     <strong>Product:</strong> {details.trf.productName}
                   </div>
-                  <div>
+                  <div style={styles.infoRow}>
+                    <strong>Product Code:</strong> {details.trf.sampleCode}
+                  </div>
+                  <div style={styles.infoRow}>
                     <strong>Lot No.:</strong> {details.trf.lotNo || "—"}
                   </div>
-                  <div>
+                  <div style={styles.infoRow}>
+                    <strong>created At:</strong>{" "}
+                    {formatDate(details.trf.createdAt)}
+                  </div>
+                </div>
+                <div style={styles.infoCard}>
+                  <h3 style={styles.infoCardTitle}>
+                    Collection & Report Details
+                  </h3>
+                  <div style={styles.infoRow}>
+                    <strong>Lab:</strong> {details.trf.labName}
+                  </div>
+                  <div style={styles.infoRow}>
+                    <strong>Lab Code:</strong> {details.trf.labCode}
+                  </div>
+                  <div style={styles.infoRow}>
+                    <strong>Lab Type:</strong> {details.trf.labType}
+                  </div>
+                  <div style={styles.infoRow}>
                     <strong>Submitted At:</strong>{" "}
                     {formatDate(details.trf.submittedAt)}
                   </div>
+                  <div style={styles.infoRow}>
+                    <strong>Updated At:</strong>{" "}
+                    {formatDate(details.trf.updatedAt)}
+                  </div>
+                  <div style={styles.infoRow}>
+                    <strong>Reported On:</strong> {formatDate(new Date())}
+                  </div>
                 </div>
               </div>
+
+              {/* Test Results Tables */}
               {details.fieldsByTest &&
                 Object.entries(details.fieldsByTest).map(
                   ([testName, fields]) => (
-                    <div key={testName} style={styles.testResultBlock}>
-                      <h4>🔬 {testName} Analysis</h4>
-                      <div style={styles.predefinedGrid}>
-                        {fields.map((field) => (
-                          <div
-                            key={field.fieldRowId}
-                            style={styles.predefinedItem}
-                          >
-                            <span>{field.label}</span>
-                            <span>{field.currentValue || "—"}</span>
-                          </div>
-                        ))}
-                      </div>
+                    <div key={testName} style={styles.testTableWrapper}>
+                      <h3 style={styles.testTableTitle}>🔬 {testName}</h3>
+                      <table style={styles.resultsTable}>
+                        <thead>
+                          <tr>
+                            <th style={styles.tableHeader}>Investigation</th>
+                            <th style={styles.tableHeader}>Result</th>
+                            <th style={styles.tableHeader}>Reference Range</th>
+                            <th style={styles.tableHeader}>Unit</th>
+                            <th style={styles.tableHeader}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fields.map((field) => {
+                            const inRange = isValueInRange(
+                              testName,
+                              field.label,
+                              field.currentValue,
+                            );
+                            let refRangeText = "";
+                            let unitText = "";
+                            if (inRange) {
+                              refRangeText = `${inRange.min} – ${inRange.max}`;
+                              unitText = inRange.unit || "";
+                            } else if (
+                              productRanges &&
+                              productRanges[testName] &&
+                              productRanges[testName][field.label]
+                            ) {
+                              const r = productRanges[testName][field.label];
+                              refRangeText =
+                                r.min && r.max ? `${r.min} – ${r.max}` : "N/A";
+                              unitText = r.unit || "";
+                            } else {
+                              refRangeText = "—";
+                            }
+                            const status = inRange
+                              ? inRange.valid
+                                ? "Normal"
+                                : "Abnormal"
+                              : "Not defined";
+                            const statusStyle = inRange
+                              ? inRange.valid
+                                ? styles.statusNormal
+                                : styles.statusAbnormal
+                              : styles.statusUnknown;
+                            return (
+                              <tr
+                                key={field.fieldRowId}
+                                style={styles.tableRow}
+                              >
+                                <td style={styles.tableCell}>
+                                  <strong>{field.label}</strong>
+                                </td>
+                                <td style={styles.tableCell}>
+                                  {field.currentValue || "—"}
+                                </td>
+                                <td style={styles.tableCell}>{refRangeText}</td>
+                                <td style={styles.tableCell}>{unitText}</td>
+                                <td style={styles.tableCell}>
+                                  <span style={statusStyle}>{status}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   ),
                 )}
+
+              {/* Interpretation / Remark Section */}
               {details.trf.remark && (
-                <div style={styles.modalSection}>
-                  <h3>📝 Remark</h3>
-                  <div style={styles.remarkBox}>{details.trf.remark}</div>
+                <div style={styles.interpretationBox}>
+                  <h4 style={styles.interpretationTitle}>
+                    📝 Interpretation & Remarks
+                  </h4>
+                  <p style={styles.interpretationText}>{details.trf.remark}</p>
                 </div>
               )}
-            </>
+
+              {/* Footer / Signatures */}
+              {/* <div style={styles.reportFooter}>
+                <div style={styles.signatureLine}>
+                  <div>_________________________</div>
+                  <div>Lab Technician</div>
+                </div>
+                <div style={styles.signatureLine}>
+                  <div>_________________________</div>
+                  <div>Pathologist</div>
+                </div>
+                <div style={styles.reportFooterText}>
+                  This report is generated electronically and requires no
+                  signature.
+                </div>
+              </div> */}
+            </div>
           )}
         </div>
         <div style={styles.modalFooter}>
@@ -143,7 +420,7 @@ const ViewModal = ({ trf, onClose }) => {
   );
 };
 
-// ========== Edit Modal (Full editing + custom fields) ==========
+// ========== Edit Modal (unchanged) ==========
 const EditModal = ({
   trf,
   testData,
@@ -220,7 +497,7 @@ const EditModal = ({
                         </div>
                       ))}
                     </div>
-                    <div style={styles.addCustomSection}>
+                    {/* <div style={styles.addCustomSection}>
                       <div style={styles.addCustomRow}>
                         <input
                           type="text"
@@ -259,7 +536,7 @@ const EditModal = ({
                       <small style={styles.addHint}>
                         Custom field name + value are saved together.
                       </small>
-                    </div>
+                    </div> */}
                   </div>
                 ),
               )}
@@ -288,9 +565,10 @@ const EditModal = ({
   );
 };
 
-// ========== Main Component (Editable Submitted TRFs) ==========
+// ========== Main Component ==========
 const AllReports = () => {
   const [trfList, setTrfList] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTrf, setSelectedTrf] = useState(null);
@@ -299,15 +577,26 @@ const AllReports = () => {
   const [testNameToIdMap, setTestNameToIdMap] = useState({});
   const [saving, setSaving] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfProductName, setPdfProductName] = useState("");
 
-  // ---------- TABLE PAGINATION / SORT / SEARCH ----------
   const [tableSearch, setTableSearch] = useState("");
   const [sortField, setSortField] = useState("submittedAt");
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Fetch test name → testId mapping
+  useEffect(() => {
+    api
+      .get("/products")
+      .then((res) => {
+        if (res.data && res.data.allProducts)
+          setAllProducts(res.data.allProducts);
+      })
+      .catch(console.error);
+  }, []);
+
   useEffect(() => {
     api
       .get(`/tests`)
@@ -321,14 +610,13 @@ const AllReports = () => {
       .catch(console.error);
   }, []);
 
-  // Load submitted TRFs
   const loadTrfs = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoadingList(true);
     try {
       const response = await api.get(`/trf/submitted`);
       setTrfList(response.data);
-      setCurrentPage(1); // reset to first page on new data
+      setCurrentPage(1);
     } catch (err) {
       console.error(err);
       alert("Failed to load reports");
@@ -342,28 +630,36 @@ const AllReports = () => {
     loadTrfs();
   }, []);
 
-  // Helper: get test names string for filtering/sorting
-  const getTestNamesString = (trf) => {
-    const names = trf.testNames || [];
-    return names.join(" ");
+  const handleViewPdf = (productName) => {
+    const product = allProducts.find((p) => p.productName === productName);
+    if (!product || !product.pdf_path) {
+      alert("No PDF document attached to this product.");
+      return;
+    }
+    const fullUrl = getPdfFullUrl(product.pdf_path);
+    setPdfUrl(fullUrl);
+    setPdfProductName(product.productName);
+    setPdfModalOpen(true);
   };
 
-  // Filter logic
+  const getTestNamesString = (trf) => (trf.testNames || []).join(" ");
+
+  // UPDATED: search also includes lotNo
   const filterTableData = (data) => {
     if (!tableSearch) return data;
     const searchLower = tableSearch.toLowerCase();
-    return data.filter((item) => {
-      return (
+    return data.filter(
+      (item) =>
         item.trfCode?.toLowerCase().includes(searchLower) ||
         item.companyName?.toLowerCase().includes(searchLower) ||
         item.requestName?.toLowerCase().includes(searchLower) ||
         item.productName?.toLowerCase().includes(searchLower) ||
-        getTestNamesString(item).toLowerCase().includes(searchLower)
-      );
-    });
+        (item.lotNo && item.lotNo.toLowerCase().includes(searchLower)) ||
+        getTestNamesString(item).toLowerCase().includes(searchLower),
+    );
   };
 
-  // Sort logic
+  // UPDATED: sort by lotNo
   const sortTableData = (data, field, direction) => {
     if (!field) return data;
     return [...data].sort((a, b) => {
@@ -385,6 +681,10 @@ const AllReports = () => {
           valA = a.productName || "";
           valB = b.productName || "";
           break;
+        case "lotNo":
+          valA = a.lotNo || "";
+          valB = b.lotNo || "";
+          break;
         case "tests":
           valA = getTestNamesString(a);
           valB = getTestNamesString(b);
@@ -397,23 +697,19 @@ const AllReports = () => {
           valA = a[field] || "";
           valB = b[field] || "";
       }
-      if (typeof valA === "string") {
-        valA = valA.toLowerCase();
-        valB = valB.toLowerCase();
-      }
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
       if (valA < valB) return direction === "asc" ? -1 : 1;
       if (valA > valB) return direction === "asc" ? 1 : -1;
       return 0;
     });
   };
 
-  // Pagination
   const paginateData = (data, page, perPage) => {
     const start = (page - 1) * perPage;
     return data.slice(start, start + perPage);
   };
 
-  // Processed data
   const processedData = useMemo(() => {
     const filtered = filterTableData(trfList);
     const sorted = sortTableData(filtered, sortField, sortDirection);
@@ -428,39 +724,31 @@ const AllReports = () => {
     itemsPerPage,
   ]);
 
-  // Reset page when search or per-page changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [tableSearch, itemsPerPage]);
+  useEffect(() => setCurrentPage(1), [tableSearch, itemsPerPage]);
 
-  // Handle sort
   const handleSort = (field) => {
-    if (sortField === field) {
+    if (sortField === field)
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
+    else {
       setSortField(field);
       setSortDirection("asc");
     }
   };
 
-  // Sort indicator component
-  const SortIndicator = ({ field }) => {
-    if (sortField !== field)
-      return <span className="trf-sort-indicator"></span>;
-    return (
+  const SortIndicator = ({ field }) =>
+    sortField === field ? (
       <span className="trf-sort-indicator">
         {sortDirection === "asc" ? "↑" : "↓"}
       </span>
+    ) : (
+      <span className="trf-sort-indicator"></span>
     );
-  };
 
-  // Pagination controls
   const PaginationControls = () => {
     const totalPages = Math.ceil(processedData.total / itemsPerPage);
     const startItem =
       processedData.total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, processedData.total);
-
     return (
       <div style={styles.paginationContainer}>
         <div style={styles.itemsPerPage}>
@@ -490,15 +778,11 @@ const AllReports = () => {
           </button>
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
+            if (totalPages <= 5) pageNum = i + 1;
+            else if (currentPage <= 3) pageNum = i + 1;
+            else if (currentPage >= totalPages - 2)
               pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = currentPage - 2 + i;
-            }
+            else pageNum = currentPage - 2 + i;
             return (
               <button
                 key={pageNum}
@@ -524,7 +808,6 @@ const AllReports = () => {
     );
   };
 
-  // Start edit – open modal with loader
   const startEdit = async (trf) => {
     setEditingTrf(trf);
     setEditLoading(true);
@@ -612,7 +895,6 @@ const AllReports = () => {
         })),
       });
     }
-
     const payload = {
       requestName: editingTrf.requestName,
       lotNo: editingTrf.lotNo,
@@ -643,17 +925,15 @@ const AllReports = () => {
 
   const getTestNames = (trf) => trf.testNames || [];
 
-  // Table renderer with search, sort, pagination
   const renderTableContent = () => {
-    if (loadingList && !refreshing) {
+    if (loadingList && !refreshing)
       return (
         <div style={styles.loaderContainer}>
           <Spinner size={36} />
           <p>Loading reports...</p>
         </div>
       );
-    }
-    if (trfList.length === 0) {
+    if (trfList.length === 0)
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
@@ -661,7 +941,6 @@ const AllReports = () => {
           <p>After users fill and submit forms, they will appear here.</p>
         </div>
       );
-    }
     return (
       <>
         <div style={styles.statsBar}>
@@ -717,6 +996,14 @@ const AllReports = () => {
                 >
                   Product <SortIndicator field="productName" />
                 </th>
+                {/* NEW LOT NO COLUMN HEADER */}
+                <th
+                  className="trf-sortable-th"
+                  onClick={() => handleSort("lotNo")}
+                  style={styles.th}
+                >
+                  Lot No. <SortIndicator field="lotNo" />
+                </th>
                 <th
                   className="trf-sortable-th"
                   onClick={() => handleSort("tests")}
@@ -743,6 +1030,8 @@ const AllReports = () => {
                   <td style={styles.td}>{trf.companyName}</td>
                   <td style={styles.td}>{trf.requestName}</td>
                   <td style={styles.td}>{trf.productName}</td>
+                  {/* NEW LOT NO DATA */}
+                  <td style={styles.td}>{trf.lotNo || "—"}</td>
                   <td style={styles.td}>
                     <div style={styles.tagsContainer}>
                       {getTestNames(trf)
@@ -762,6 +1051,13 @@ const AllReports = () => {
                   <td style={styles.td}>{formatDate(trf.submittedAt)}</td>
                   <td style={styles.td}>
                     <button
+                      onClick={() => handleViewPdf(trf.productName)}
+                      style={styles.pdfBtn}
+                      title="View Product PDF"
+                    >
+                      📄 PDF
+                    </button>
+                    <button
                       onClick={() => setSelectedTrf(trf)}
                       style={styles.viewBtn}
                     >
@@ -779,7 +1075,7 @@ const AllReports = () => {
               {processedData.data.length === 0 && (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     No matching reports found
@@ -805,7 +1101,11 @@ const AllReports = () => {
       <div style={styles.tableWrapper}>{renderTableContent()}</div>
 
       {selectedTrf && (
-        <ViewModal trf={selectedTrf} onClose={() => setSelectedTrf(null)} />
+        <ViewModal
+          trf={selectedTrf}
+          onClose={() => setSelectedTrf(null)}
+          allProducts={allProducts}
+        />
       )}
       {editingTrf && (
         <EditModal
@@ -819,11 +1119,18 @@ const AllReports = () => {
           loading={editLoading}
         />
       )}
+      {pdfModalOpen && (
+        <PdfModal
+          pdfUrl={pdfUrl}
+          productName={pdfProductName}
+          onClose={() => setPdfModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
 
-// ========== Styles ==========
+// ========== Styles (same as before, no changes needed) ==========
 const styles = {
   container: {
     maxWidth: "95%",
@@ -932,6 +1239,20 @@ const styles = {
     fontSize: "0.7rem",
     fontWeight: "500",
   },
+  pdfBtn: {
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: "30px",
+    padding: "5px 12px",
+    marginRight: "8px",
+    cursor: "pointer",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+  },
   viewBtn: {
     background: "transparent",
     border: "1px solid #cbd5e1",
@@ -976,8 +1297,9 @@ const styles = {
     background: "#fff",
     borderRadius: "24px",
     maxWidth: "900px",
+    height: "100%",
     width: "100%",
-    maxHeight: "85vh",
+    maxHeight: "95vh",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
@@ -1035,6 +1357,7 @@ const styles = {
     alignItems: "center",
     borderBottom: "1px dashed #e2e8f0",
     padding: "6px 0",
+    flexWrap: "wrap",
   },
   remarkBox: {
     background: "#fefce8",
@@ -1150,7 +1473,6 @@ const styles = {
     fontSize: "0.7rem",
     color: "#64748b",
   },
-  // Pagination styles
   paginationContainer: {
     display: "flex",
     justifyContent: "space-between",
@@ -1161,11 +1483,7 @@ const styles = {
     gap: "16px",
     fontSize: "0.85rem",
   },
-  itemsPerPage: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
+  itemsPerPage: { display: "flex", alignItems: "center", gap: "8px" },
   itemsPerPageSelect: {
     padding: "6px 10px",
     border: "1px solid #cbd5e1",
@@ -1194,6 +1512,183 @@ const styles = {
     background: "#0f172a",
     color: "#ffffff",
     borderColor: "#0f172a",
+  },
+  inRangeBadge: {
+    background: "#dcfce7",
+    color: "#15803d",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+    display: "inline-block",
+    marginTop: "4px",
+  },
+  outRangeBadge: {
+    background: "#fee2e2",
+    color: "#b91c1c",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+    display: "inline-block",
+    marginTop: "4px",
+  },
+  noRangeBadge: {
+    background: "#fef3c7",
+    color: "#b45309",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+    display: "inline-block",
+    marginTop: "4px",
+  },
+  reportContainer: {
+    background: "#fff",
+    padding: "20px",
+    borderRadius: "12px",
+  },
+  reportHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "24px",
+    paddingBottom: "16px",
+    borderBottom: "2px solid #e2e8f0",
+  },
+  reportTitleSection: { textAlign: "left" },
+  reportTitle: {
+    fontSize: "1.8rem",
+    fontWeight: "700",
+    margin: 0,
+    color: "#0f172a",
+  },
+  reportSubtitle: { fontSize: "0.9rem", color: "#64748b", marginTop: "4px" },
+  reportLogo: {
+    background: "#f1f5f9",
+    padding: "8px 16px",
+    borderRadius: "40px",
+  },
+  logoText: { fontWeight: "600", fontSize: "1.2rem" },
+  infoCards: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: "20px",
+    marginBottom: "28px",
+  },
+  infoCard: {
+    background: "#f8fafc",
+    padding: "16px",
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0",
+  },
+  infoCardTitle: {
+    fontSize: "1rem",
+    fontWeight: "600",
+    margin: "0 0 12px 0",
+    color: "#1e293b",
+    borderLeft: "4px solid #3b82f6",
+    paddingLeft: "10px",
+  },
+  infoRow: {
+    fontSize: "0.85rem",
+    marginBottom: "8px",
+    display: "flex",
+    justifyContent: "space-between",
+    borderBottom: "1px dotted #cbd5e1",
+    paddingBottom: "4px",
+  },
+  testTableWrapper: {
+    marginBottom: "28px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    overflow: "hidden",
+  },
+  testTableTitle: {
+    background: "#f1f5f9",
+    margin: 0,
+    padding: "10px 16px",
+    fontSize: "1rem",
+    fontWeight: "600",
+    borderBottom: "1px solid #e2e8f0",
+  },
+  resultsTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    fontSize: "0.8rem",
+  },
+  tableHeader: {
+    textAlign: "left",
+    padding: "10px 12px",
+    background: "#f8fafc",
+    fontWeight: "600",
+    borderBottom: "1px solid #e2e8f0",
+  },
+  tableCell: { padding: "8px 12px", borderBottom: "1px solid #f1f5f9" },
+  statusNormal: {
+    background: "#dcfce7",
+    color: "#15803d",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+  },
+  statusAbnormal: {
+    background: "#fee2e2",
+    color: "#b91c1c",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+  },
+  statusUnknown: {
+    background: "#f1f5f9",
+    color: "#475569",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+  },
+  interpretationBox: {
+    background: "#fffbeb",
+    borderLeft: "4px solid #f59e0b",
+    padding: "16px",
+    borderRadius: "12px",
+    marginTop: "20px",
+    marginBottom: "20px",
+  },
+  interpretationTitle: {
+    margin: "0 0 8px 0",
+    fontSize: "0.9rem",
+    fontWeight: "600",
+    color: "#b45309",
+  },
+  interpretationText: { margin: 0, fontSize: "0.85rem", color: "#78350f" },
+  reportFooter: {
+    marginTop: "24px",
+    paddingTop: "16px",
+    borderTop: "1px solid #e2e8f0",
+    textAlign: "center",
+    fontSize: "0.7rem",
+    color: "#64748b",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+  signatureLine: { textAlign: "center", fontSize: "0.7rem", color: "#475569" },
+  reportFooterText: { fontSize: "0.7rem", color: "#94a3b8" },
+  downloadPdfBtn: {
+    background: "#dc2626",
+    color: "#fff",
+    border: "none",
+    borderRadius: "30px",
+    padding: "6px 16px",
+    cursor: "pointer",
+    fontSize: "0.8rem",
+    fontWeight: "500",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
   },
 };
 

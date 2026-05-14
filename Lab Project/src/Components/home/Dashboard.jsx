@@ -48,7 +48,7 @@ export default function Dashboard() {
 
   // ✅ BODY PADDING
   useEffect(() => {
-    document.body.style.paddingTop = `${NAVBAR_H}px`;
+    document.body.style.paddingTop = `${0}px`;
     return () => {
       document.body.style.paddingTop = "";
     };
@@ -149,7 +149,6 @@ export default function Dashboard() {
     <>
       <nav
         style={{
-          position: "fixed",
           top: 0,
           left: 0,
           right: 0,

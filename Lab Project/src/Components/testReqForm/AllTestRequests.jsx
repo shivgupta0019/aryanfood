@@ -49,14 +49,83 @@ const formatDate = (isoString) => {
   return new Date(isoString).toLocaleString();
 };
 
-// ========== View Modal ==========
-const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
-  if (!trf) return null;
+// Helper to get full PDF URL
+const getPdfFullUrl = (relativePath) => {
+  if (!relativePath) return null;
+  if (relativePath.startsWith("http")) return relativePath;
+  const backendBase =
+    api.defaults.baseURL?.replace(/\/api$/, "") || "http://localhost:5000";
+  const cleanBase = backendBase.replace(/\/$/, "");
+  const path = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
+  return `${cleanBase}${path}`;
+};
+
+// ========== PDF Modal ==========
+const PdfModal = ({ pdfUrl, productName, onClose }) => {
+  const iframeRef = React.useRef(null);
+
+  const handlePrint = () => {
+    if (iframeRef.current) {
+      try {
+        iframeRef.current.contentWindow.print();
+      } catch (e) {
+        alert("Print not available. Please download the PDF first.");
+      }
+    }
+  };
+
+  if (!pdfUrl) return null;
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+      <div
+        style={{ ...styles.modalContent, maxWidth: "80vw", width: "75vw" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={styles.modalHeader}>{/* minimalist header */}</div>
+        <div style={{ ...styles.modalBody, height: "70vh", padding: 0 }}>
+          <iframe
+            ref={iframeRef}
+            src={pdfUrl}
+            title="Product PDF"
+            style={{ width: "100%", height: "100%", border: "none" }}
+          />
+        </div>
+        <div style={styles.modalFooter}>
+          <button onClick={onClose} style={styles.closeModalBtn}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ========== IMPROVED ViewModal (Test Request Report) ==========
+const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
+  if (!trf) return null;
+
+  const formatDateOnly = (isoString) => {
+    if (!isoString) return "N/A";
+    return new Date(isoString).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (isoString) => {
+    if (!isoString) return "N/A";
+    return new Date(isoString).toLocaleString();
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div
+        style={{ ...styles.modalContent, maxWidth: "1000px", width: "90%" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div style={styles.modalHeader}>
-          <h2 style={styles.modalTitle}>📄 Test Request Form</h2>
+          <h2 style={styles.modalTitle}>📋 Test Request Report</h2>
           <button style={styles.modalCloseBtn} onClick={onClose}>
             ×
           </button>
@@ -68,61 +137,87 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
               <p>Loading details...</p>
             </div>
           ) : (
-            <>
-              <div style={styles.modalSection}>
-                <h3>🏢 Company & Request</h3>
-                <div style={styles.infoGrid}>
-                  <div>
+            <div style={styles.reportContainer}>
+              {/* Report Header */}
+              <div style={styles.reportHeader}>
+                <div>
+                  <h1 style={styles.reportTitle}>LABORATORY TEST REPORT</h1>
+                  <p style={styles.reportSubtitle}>
+                    Clinical Diagnostics & Analysis
+                  </p>
+                </div>
+                <div style={styles.reportLogo}>
+                  <span style={styles.logoText}>🔬 MEDILAB</span>
+                </div>
+              </div>
+
+              {/* Information Cards */}
+              <div style={styles.infoCards}>
+                <div style={styles.infoCard}>
+                  <h3 style={styles.infoCardTitle}>Request Details</h3>
+                  <div style={styles.infoRow}>
                     <strong>TRF Code:</strong> {trf.trfCode}
                   </div>
-                  <div>
+                  <div style={styles.infoRow}>
                     <strong>Company:</strong> {trf.companyName} (
                     {trf.companyCode})
                   </div>
-                  <div>
+                  <div style={styles.infoRow}>
                     <strong>Request Name:</strong> {trf.requestName}
                   </div>
-                  <div>
+                  <div style={styles.infoRow}>
+                    <strong>Product:</strong> {trf.productName}
+                  </div>
+                  <div style={styles.infoRow}>
+                    <strong>Lot No.:</strong> {trf.lotNo || "—"}
+                  </div>
+                  <div style={styles.infoRow}>
+                    <strong>Sample Code:</strong> {trf.sampleCode || "—"}
+                  </div>
+                </div>
+                <div style={styles.infoCard}>
+                  <h3 style={styles.infoCardTitle}>Collection & Status</h3>
+                  <div style={styles.infoRow}>
                     <strong>Lab:</strong> {trf.labName} ({trf.labCode}) –{" "}
                     {trf.labType}
                   </div>
-                  <div>
-                    <strong>Product:</strong> {trf.productName}
-                  </div>
-                  <div>
-                    <strong>Lot No.:</strong> {trf.lotNo || "—"}
-                  </div>
-                  <div>
-                    <strong>Sample Code:</strong> {trf.sampleCode || "—"}
-                  </div>
-                  <div>
+                  <div style={styles.infoRow}>
                     <strong>Status:</strong>{" "}
-                    {trf.status === "filled" ? "✅ Filled" : "⏳ Not Filled"}
+                    {trf.status === "filled" ? (
+                      <span style={styles.statusBadge}>✅ Filled</span>
+                    ) : (
+                      <span style={styles.statusBadgePending}>⏳ Pending</span>
+                    )}
                   </div>
-                  <div>
-                    <strong>Created:</strong> {formatDate(trf.createdAt)}
+                  <div style={styles.infoRow}>
+                    <strong>Created:</strong> {formatDateTime(trf.createdAt)}
                   </div>
-                  <div>
-                    <strong>Last Updated:</strong> {formatDate(trf.updatedAt)}
+                  <div style={styles.infoRow}>
+                    <strong>Last Updated:</strong>{" "}
+                    {formatDateTime(trf.updatedAt)}
+                  </div>
+                  <div style={styles.infoRow}>
+                    <strong>Reported On:</strong> {formatDateOnly(new Date())}
                   </div>
                 </div>
               </div>
+
+              {/* Test Results */}
               {fieldsByTest && Object.keys(fieldsByTest).length > 0 && (
-                <div style={styles.modalSection}>
-                  <h3>🧪 Test Results</h3>
+                <div style={styles.testResultsSection}>
+                  <h3 style={styles.testResultsTitle}>🧪 Test Results</h3>
                   {Object.entries(fieldsByTest).map(([testName, fields]) => (
-                    <div key={testName} style={styles.testResultBlock}>
-                      <h4 style={styles.testResultTitle}>
+                    <div key={testName} style={styles.testCard}>
+                      <h4 style={styles.testCardTitle}>
                         🔬 {testName} Analysis
                       </h4>
-                      <div style={styles.predefinedGrid}>
+                      <div style={styles.resultsGrid}>
                         {fields.map((field) => (
-                          <div
-                            key={field.fieldRowId}
-                            style={styles.predefinedItem}
-                          >
-                            <span>{field.label}</span>
-                            <span style={{ fontWeight: 500 }}>
+                          <div key={field.fieldRowId} style={styles.resultItem}>
+                            <span style={styles.resultLabel}>
+                              {field.label}
+                            </span>
+                            <span style={styles.resultValue}>
                               {field.currentValue || "—"}
                             </span>
                           </div>
@@ -132,13 +227,33 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
                   ))}
                 </div>
               )}
-              {trf.remark && (
-                <div style={styles.modalSection}>
-                  <h3>📝 Remark</h3>
-                  <div style={styles.remarkBox}>{trf.remark}</div>
+
+              {/* Remarks */}
+              {/* {trf.remark && (
+                <div style={styles.interpretationBox}>
+                  <h4 style={styles.interpretationTitle}>
+                    📝 Remarks / Interpretation
+                  </h4>
+                  <p style={styles.interpretationText}>{trf.remark}</p>
                 </div>
-              )}
-            </>
+              )} */}
+
+              {/* Footer Signatures */}
+              {/* <div style={styles.reportFooter}>
+                <div style={styles.signatureLine}>
+                  <div>_________________________</div>
+                  <div>Lab Technician</div>
+                </div>
+                <div style={styles.signatureLine}>
+                  <div>_________________________</div>
+                  <div>Pathologist</div>
+                </div>
+                <div style={styles.reportFooterText}>
+                  This report is generated electronically and requires no
+                  physical signature.
+                </div>
+              </div> */}
+            </div>
           )}
         </div>
         <div style={styles.modalFooter}>
@@ -258,6 +373,7 @@ const EditModal = ({
 // ========== Main Component ==========
 const AllTestRequests = () => {
   const [trfList, setTrfList] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTrf, setSelectedTrf] = useState(null);
@@ -269,12 +385,29 @@ const AllTestRequests = () => {
   const [saving, setSaving] = useState(false);
   const [submittingId, setSubmittingId] = useState(null);
 
-  // ---------- TABLE PAGINATION / SORT / SEARCH ----------
+  // PDF Modal state
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfProductName, setPdfProductName] = useState("");
+
+  // Table pagination / sort / search
   const [tableSearch, setTableSearch] = useState("");
   const [sortField, setSortField] = useState("updatedAt");
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Load all products (to get PDF paths)
+  const loadAllProducts = async () => {
+    try {
+      const response = await api.get("/products");
+      if (response.data && response.data.allProducts) {
+        setAllProducts(response.data.allProducts);
+      }
+    } catch (error) {
+      console.error("Failed to load products for PDFs", error);
+    }
+  };
 
   // Load pending TRFs (not_filled + filled)
   const loadTrfList = async (showRefreshLoader = false) => {
@@ -283,7 +416,7 @@ const AllTestRequests = () => {
     try {
       const response = await api.get(`/trf/pending`);
       setTrfList(response.data);
-      setCurrentPage(1); // reset to first page on new data
+      setCurrentPage(1);
     } catch (error) {
       console.error("Failed to load TRFs", error);
       alert("Could not load test requests");
@@ -294,14 +427,24 @@ const AllTestRequests = () => {
   };
 
   useEffect(() => {
+    loadAllProducts();
     loadTrfList();
   }, []);
 
-  // Helper: get test names string for filtering/sorting
-  const getTestNamesString = (trf) => {
-    const names = trf.testNames || [];
-    return names.join(" ");
+  // Open PDF modal for a product
+  const handleViewPdf = (sampleCode) => {
+    const product = allProducts.find((p) => p?.productId === sampleCode);
+    if (!product || !product.pdf_path) {
+      alert("No PDF document attached to this product.");
+      return;
+    }
+    const fullUrl = getPdfFullUrl(product.pdf_path);
+    setPdfUrl(fullUrl);
+    setPdfProductName(product.productName);
+    setPdfModalOpen(true);
   };
+
+  const getTestNamesString = (trf) => (trf.testNames || []).join(" ");
 
   // Filter logic
   const filterTableData = (data) => {
@@ -367,13 +510,11 @@ const AllTestRequests = () => {
     });
   };
 
-  // Pagination
   const paginateData = (data, page, perPage) => {
     const start = (page - 1) * perPage;
     return data.slice(start, start + perPage);
   };
 
-  // Processed data
   const processedData = useMemo(() => {
     const filtered = filterTableData(trfList);
     const sorted = sortTableData(filtered, sortField, sortDirection);
@@ -388,12 +529,10 @@ const AllTestRequests = () => {
     itemsPerPage,
   ]);
 
-  // Reset page when search or per-page changes
   useEffect(() => {
     setCurrentPage(1);
   }, [tableSearch, itemsPerPage]);
 
-  // Handle sort
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -403,7 +542,6 @@ const AllTestRequests = () => {
     }
   };
 
-  // Sort indicator component
   const SortIndicator = ({ field }) => {
     if (sortField !== field)
       return <span className="trf-sort-indicator"></span>;
@@ -414,7 +552,6 @@ const AllTestRequests = () => {
     );
   };
 
-  // Pagination controls
   const PaginationControls = () => {
     const totalPages = Math.ceil(processedData.total / itemsPerPage);
     const startItem =
@@ -566,7 +703,6 @@ const AllTestRequests = () => {
     try {
       await api.post(`/trf/${trfId}/submit`);
       alert("TRF submitted successfully!");
-      // Remove from list
       setTrfList((prev) => prev.filter((trf) => trf.id !== trfId));
     } catch (error) {
       console.error(error);
@@ -578,7 +714,6 @@ const AllTestRequests = () => {
 
   const getTestNames = (trf) => trf.testNames || [];
 
-  // Render table content with search, sort, pagination
   const renderTableContent = () => {
     if (loadingList && !refreshing) {
       return (
@@ -713,6 +848,13 @@ const AllTestRequests = () => {
                     </td>
                     <td style={styles.td}>
                       <button
+                        onClick={() => handleViewPdf(trf.sampleCode)}
+                        style={styles.pdfBtn}
+                        title="View Product PDF"
+                      >
+                        📄 PDF
+                      </button>
+                      <button
                         onClick={() => handleView(trf)}
                         style={styles.viewBtn}
                         disabled={viewLoading}
@@ -774,6 +916,7 @@ const AllTestRequests = () => {
         </p>
       </div>
       <div style={styles.tableWrapper}>{renderTableContent()}</div>
+
       {selectedTrf && (
         <ViewModal
           trf={selectedTrf}
@@ -785,6 +928,7 @@ const AllTestRequests = () => {
           loading={viewLoading}
         />
       )}
+
       {editingTrf && (
         <EditModal
           trf={editingTrf}
@@ -794,6 +938,14 @@ const AllTestRequests = () => {
           onCancel={cancelEdit}
           loading={editLoading}
           saving={saving}
+        />
+      )}
+
+      {pdfModalOpen && (
+        <PdfModal
+          pdfUrl={pdfUrl}
+          productName={pdfProductName}
+          onClose={() => setPdfModalOpen(false)}
         />
       )}
     </div>
@@ -927,6 +1079,20 @@ const styles = {
     fontWeight: "600",
     display: "inline-block",
   },
+  pdfBtn: {
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: "30px",
+    padding: "5px 12px",
+    marginRight: "8px",
+    cursor: "pointer",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+  },
   viewBtn: {
     background: "transparent",
     border: "1px solid #cbd5e1",
@@ -1005,7 +1171,8 @@ const styles = {
     borderRadius: "24px",
     maxWidth: "900px",
     width: "100%",
-    maxHeight: "85vh",
+    height: "100%",
+    maxHeight: "95vh",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
@@ -1043,6 +1210,7 @@ const styles = {
     background: "#f8fafc",
     padding: "16px",
     borderRadius: "20px",
+    marginBottom: "20px",
   },
   testResultBlock: {
     background: "#fefefe",
@@ -1134,7 +1302,6 @@ const styles = {
     outline: "none",
     transition: "0.2s",
   },
-  // Pagination styles
   paginationContainer: {
     display: "flex",
     justifyContent: "space-between",
@@ -1178,6 +1345,170 @@ const styles = {
     background: "#0f172a",
     color: "#ffffff",
     borderColor: "#0f172a",
+  },
+  // New styles for improved ViewModal
+  reportContainer: {
+    background: "#fff",
+    padding: "20px",
+    borderRadius: "16px",
+  },
+  reportHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "24px",
+    paddingBottom: "16px",
+    borderBottom: "2px solid #e2e8f0",
+  },
+  reportTitle: {
+    fontSize: "1.6rem",
+    fontWeight: "700",
+    margin: 0,
+    color: "#0f172a",
+  },
+  reportSubtitle: {
+    fontSize: "0.8rem",
+    color: "#64748b",
+    marginTop: "4px",
+  },
+  reportLogo: {
+    background: "#f1f5f9",
+    padding: "8px 16px",
+    borderRadius: "40px",
+  },
+  logoText: {
+    fontWeight: "600",
+    fontSize: "1rem",
+  },
+  infoCards: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: "20px",
+    marginBottom: "28px",
+  },
+  infoCard: {
+    background: "#f8fafc",
+    padding: "16px",
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0",
+  },
+  infoCardTitle: {
+    fontSize: "1rem",
+    fontWeight: "600",
+    margin: "0 0 12px 0",
+    color: "#1e293b",
+    borderLeft: "4px solid #3b82f6",
+    paddingLeft: "10px",
+  },
+  infoRow: {
+    fontSize: "0.85rem",
+    marginBottom: "8px",
+    display: "flex",
+    justifyContent: "space-between",
+    borderBottom: "1px dotted #cbd5e1",
+    paddingBottom: "4px",
+  },
+  statusBadge: {
+    background: "#dcfce7",
+    color: "#15803d",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+  },
+  statusBadgePending: {
+    background: "#fff3e3",
+    color: "#b45309",
+    padding: "2px 8px",
+    borderRadius: "20px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+  },
+  testResultsSection: {
+    marginBottom: "24px",
+  },
+  testResultsTitle: {
+    fontSize: "1.2rem",
+    fontWeight: "600",
+    marginBottom: "16px",
+    color: "#0f172a",
+  },
+  testCard: {
+    border: "1px solid #e2e8f0",
+    borderRadius: "16px",
+    marginBottom: "20px",
+    overflow: "hidden",
+  },
+  testCardTitle: {
+    background: "#f1f5f9",
+    margin: 0,
+    padding: "12px 16px",
+    fontSize: "1rem",
+    fontWeight: "600",
+    borderBottom: "1px solid #e2e8f0",
+  },
+  resultsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+    gap: "8px 16px",
+    padding: "16px",
+  },
+  resultItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "6px 0",
+    borderBottom: "1px dashed #f1f5f9",
+  },
+  resultLabel: {
+    fontWeight: "500",
+    color: "#475569",
+    fontSize: "0.85rem",
+  },
+  resultValue: {
+    fontWeight: "600",
+    color: "#0f172a",
+    fontSize: "0.9rem",
+    fontFamily: "monospace",
+  },
+  interpretationBox: {
+    background: "#fffbeb",
+    borderLeft: "4px solid #f59e0b",
+    padding: "16px",
+    borderRadius: "12px",
+    marginTop: "20px",
+    marginBottom: "20px",
+  },
+  interpretationTitle: {
+    margin: "0 0 8px 0",
+    fontSize: "0.9rem",
+    fontWeight: "600",
+    color: "#b45309",
+  },
+  interpretationText: {
+    margin: 0,
+    fontSize: "0.85rem",
+    color: "#78350f",
+  },
+  reportFooter: {
+    marginTop: "24px",
+    paddingTop: "16px",
+    borderTop: "1px solid #e2e8f0",
+    textAlign: "center",
+    fontSize: "0.7rem",
+    color: "#64748b",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+  signatureLine: {
+    textAlign: "center",
+    fontSize: "0.7rem",
+    color: "#475569",
+  },
+  reportFooterText: {
+    fontSize: "0.7rem",
+    color: "#94a3b8",
   },
 };
 
