@@ -131,9 +131,9 @@ export default function Dashboard() {
           { to: "/allreports", icon: FaFileAlt, label: "All Report" },
         ]
       : []),
-    { to: "/centrallab", icon: FaFlask, label: "Labs Report" },
-    { to: "/project", icon: FaVial, label: "R&D" },
-    { to: "/result", icon: FaChartLine, label: "Result" },
+    // { to: "/centrallab", icon: FaFlask, label: "Labs Report" },
+    // { to: "/project", icon: FaVial, label: "R&D" },
+    // { to: "/result", icon: FaChartLine, label: "Result" },
     { to: "/alltrf", icon: FaListAlt, label: "All Test Requests" },
   ];
 
