@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "../Style/Form.css";
+// import "../Style/Form.css";
 
 export default function ProjectForm({ editdata, editIndex }) {
   const navigate = useNavigate();

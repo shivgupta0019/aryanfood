@@ -31,7 +31,15 @@ export default function Dashboard() {
   const dropdownRef = useRef(null);
   const NAVBAR_H = 58;
 
-  // ✅ SCROLL
+  // Helper to get full image URL
+  const getFullImageUrl = (photoPath) => {
+    if (!photoPath) return null;
+    if (photoPath.startsWith("http")) return photoPath;
+    const base = api.defaults.baseURL?.replace(/\/api$/, "") || "http://localhost:5000";
+    return `${base}${photoPath.startsWith("/") ? photoPath : `/${photoPath}`}`;
+  };
+
+  // SCROLL
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
@@ -68,12 +76,10 @@ export default function Dashboard() {
   // ✅ TOKEN + ROLE
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       navigate("/");
       return;
     }
-
     try {
       const decoded = jwtDecode(token);
       setRole(decoded.role);
@@ -81,27 +87,16 @@ export default function Dashboard() {
       localStorage.clear();
       navigate("/");
     }
-  }, []);
+  }, [navigate]);
 
-  // ✅ FETCH USER DATA FROM /api/user WITH AUTHORIZATION HEADER
+  // FETCH USER DATA
   useEffect(() => {
     async function loadProfile() {
       try {
         const token = localStorage.getItem("token");
-
-          const res = await api.get("/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await api.get("/profile", {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        // if (!token) {
-        //   navigate("/");
-        //   return;
-        // }
-
-        // // ✅ API interceptor will automatically add Authorization header
-        // const res = await api.get("/users");
-
         setProfile({
           name: res.data.name || res.data.full_name || "User",
           email: res.data.email || "",
@@ -110,18 +105,16 @@ export default function Dashboard() {
         });
       } catch (err) {
         console.error("Failed to fetch user data:", err);
-        // If 401 or token invalid, interceptor will handle redirect
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
           navigate("/");
         }
       }
     }
-
     loadProfile();
   }, [navigate]);
 
-  //  LINKS
+  // LINKS
   const allLinks = [
     ...(role === "admin" || role === "super_admin"
       ? [
@@ -139,12 +132,12 @@ export default function Dashboard() {
 
   async function handleLogout() {
     try {
-      await api.post("/logout"); //  backend call
+      await api.post("/logout");
     } catch (err) {}
-
     localStorage.clear();
     window.location.href = "/";
   }
+
   return (
     <>
       <nav
@@ -216,7 +209,6 @@ export default function Dashboard() {
         >
           {allLinks.map(({ to, icon: Icon, label }) => (
             <li key={to}>
-              {/* ✅ underline class handles hover via CSS below */}
               <Link to={to} className="nav-item-link">
                 <Icon className="nav-item-icon" />
                 {label}
@@ -259,21 +251,21 @@ export default function Dashboard() {
                 userSelect: "none",
               }}
             >
-           {profile.photo ? (
-  <img
-    src={`http://localhost:5000${profile.photo}`}
-    alt="avatar"
-    style={{
-      width: "35px",
-      height: "35px",
-      borderRadius: "50%",
-      objectFit: "cover",
-      border: "2px solid #185fa5",
-    }}
-  />
-) : (
-  <FaUserCircle style={{ fontSize: "35px", color: "#555" }} />
-)}
+              {profile.photo ? (
+                <img
+                  src={getFullImageUrl(profile.photo)}
+                  alt="avatar"
+                  style={{
+                    width: "35px",
+                    height: "35px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid #185fa5",
+                  }}
+                />
+              ) : (
+                <FaUserCircle style={{ fontSize: "35px", color: "#555" }} />
+              )}
               <div
                 style={{
                   display: "flex",
@@ -320,14 +312,11 @@ export default function Dashboard() {
                     alignItems: "center",
                     marginBottom: "10px",
                   }}
+
                 >
                   {profile.photo ? (
                     <img
-                      src={
-                        profile.photo
-                          ? `http://localhost:5000${profile.photo}`
-                          : ""
-                      }
+                      src={getFullImageUrl(profile.photo)}
                       alt="avatar"
                       style={{
                         width: "52px",
@@ -354,7 +343,9 @@ export default function Dashboard() {
                         color: "#185fa5",
                         marginBottom: "6px",
                       }}
-                    ></div>
+                    >
+                      {profile.name?.charAt(0) || "?"}
+                    </div>
                   )}
                   <p style={{ fontWeight: 600, fontSize: "13px", margin: 0 }}>
                     {profile.name}
@@ -366,7 +357,9 @@ export default function Dashboard() {
                       margin: 0,
                       textTransform: "capitalize",
                     }}
-                  ></p>
+                  >
+                    {role}
+                  </p>
                 </div>
                 <hr
                   style={{
@@ -491,7 +484,7 @@ export default function Dashboard() {
         >
           {profile.photo ? (
             <img
-              src={profile.photo}
+              src={getFullImageUrl(profile.photo)}
               alt="avatar"
               style={{
                 width: "38px",
@@ -515,7 +508,9 @@ export default function Dashboard() {
                 fontWeight: 600,
                 color: "#185fa5",
               }}
-            ></div>
+            >
+              {profile.name?.charAt(0) || "?"}
+            </div>
           )}
           <div>
             <p
@@ -535,7 +530,9 @@ export default function Dashboard() {
                 color: "#888",
                 textTransform: "capitalize",
               }}
-            ></p>
+            >
+              {role}
+            </p>
           </div>
         </div>
         {allLinks.map(({ to, icon: Icon, label }) => (
@@ -606,9 +603,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── CSS ── */}
+      {/* CSS */}
       <style>{`
-        /* ✅ Nav link — default black, no underline */
         .nav-item-link {
           display: flex;
           align-items: center;
@@ -623,8 +619,6 @@ export default function Dashboard() {
           transition: background 0.15s;
           position: relative;
         }
-
-        /* ✅ Underline effect on hover only */
         .nav-item-link::after {
           content: "";
           position: absolute;
@@ -638,21 +632,17 @@ export default function Dashboard() {
           transition: transform 0.2s ease;
           border-radius: 2px;
         }
-
         .nav-item-link:hover {
           background: #f1f5f9;
           color: #111 !important;
         }
-
         .nav-item-link:hover::after {
           transform: scaleX(1);
         }
-
         .nav-item-icon {
           font-size: 13px;
           opacity: 0.65;
         }
-
         @media (max-width: 768px) {
           .nav-desktop-links { display: none !important; }
           .profile-desktop   { display: none !important; }

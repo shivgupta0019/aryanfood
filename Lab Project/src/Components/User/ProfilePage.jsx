@@ -11,7 +11,6 @@ import {
   FaPhone,
   FaCalendar,
   FaVenusMars,
-  FaMapMarkerAlt,
   FaCity,
   FaFlag,
   FaAddressCard,
@@ -20,11 +19,28 @@ import {
 import api from "../../api/axiosConfig";
 import { baseURL } from "../../api/axiosConfig";
 
+// Custom hook for responsive breakpoints
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = (e) => setMatches(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [matches, query]);
+
+  return matches;
+}
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const fileRef = useRef(null);
-
-  const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser")) || {};
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  const isTablet = useMediaQuery("(max-width: 768px)");
 
   const [profileData, setProfileData] = useState({
     name: "",
@@ -49,14 +65,11 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       const res = await api.get("/profile");
-
       setProfileData({
         name: res.data.full_name || "",
         email: res.data.email || "",
         phone: res.data.phone || "",
-        dob: res.data.dob
-          ? new Date(res.data.dob).toISOString().split("T")[0]
-          : "",
+        dob: res.data.dob ? new Date(res.data.dob).toISOString().split("T")[0] : "",
         gender: res.data.gender || "",
         city: res.data.city || "",
         state: res.data.state || "",
@@ -71,7 +84,6 @@ export default function ProfilePage() {
     }
   }
 
-  //  PAGE LOAD
   useEffect(() => {
     loadProfile();
   }, []);
@@ -91,9 +103,7 @@ export default function ProfilePage() {
   function handlePhotoChange(e) {
     const file = e.target.files[0];
     if (!file) return;
-console.log('hi...',URL.createObjectURL(file));
-
-    setPreview(URL.createObjectURL(file)); // preview ke liye
+    setPreview(URL.createObjectURL(file));
     setProfileData({ ...profileData, photo: file });
   }
 
@@ -101,7 +111,6 @@ console.log('hi...',URL.createObjectURL(file));
     try {
       setUpdateLoading(true);
       const formData = new FormData();
-
       formData.append("full_name", profileData.name);
       formData.append("dob", profileData.dob);
       formData.append("gender", profileData.gender);
@@ -109,24 +118,23 @@ console.log('hi...',URL.createObjectURL(file));
       formData.append("state", profileData.state);
       formData.append("address", profileData.address);
       formData.append("bio", profileData.bio);
-
       if (fileRef.current.files[0]) {
         formData.append("photo", fileRef.current.files[0]);
       }
-
       const res = await api.put("/profile", formData);
       alert(res.data.message);
       setPreview(null);
-      setImageVersion(Date.now()); // 🔥 ye add kar
+      setImageVersion(Date.now());
       await loadProfile();
       setEditMode(false);
     } catch (err) {
       console.log(err);
-       alert("Failed to update profile");
+      alert("Failed to update profile");
     } finally {
       setUpdateLoading(false);
     }
   }
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -136,33 +144,124 @@ console.log('hi...',URL.createObjectURL(file));
     );
   }
 
+  // Responsive overrides
+  const responsiveStyles = {
+    container: {
+      ...styles.container,
+      marginTop: isMobile ? "70px" : "80px",
+      padding: isMobile ? "0 1rem" : "0 1.5rem",
+    },
+    card: {
+      ...styles.card,
+      borderRadius: isMobile ? "30px" : "50px",
+    },
+    header: {
+      ...styles.header,
+      padding: isMobile ? "1.2rem 1.2rem 0 1.2rem" : "2rem 2rem 0 2rem",
+    },
+    headerTitle: {
+      ...styles.headerTitle,
+      fontSize: isMobile ? "24px" : "28px",
+    },
+    content: {
+      ...styles.content,
+      padding: isMobile ? "1.2rem" : "2rem",
+    },
+    avatar: {
+      ...styles.avatar,
+      width: isMobile ? "80px" : "100px",
+      height: isMobile ? "80px" : "100px",
+    },
+    avatarPlaceholder: {
+      ...styles.avatarPlaceholder,
+      width: isMobile ? "80px" : "100px",
+      height: isMobile ? "80px" : "100px",
+    },
+    initials: {
+      ...styles.initials,
+      fontSize: isMobile ? "28px" : "36px",
+    },
+    changePhotoBtn: {
+      ...styles.changePhotoBtn,
+      padding: isMobile ? "4px 8px" : "6px 12px",
+      fontSize: isMobile ? "10px" : "12px",
+      right: isMobile ? "-5px" : "-10px",
+    },
+    userName: {
+      ...styles.userName,
+      fontSize: isMobile ? "18px" : "20px",
+    },
+    detailsGrid: {
+      ...styles.detailsGrid,
+      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)",
+      gap: isMobile ? "0.75rem" : "1rem",
+    },
+    detailCard: {
+      ...styles.detailCard,
+      padding: isMobile ? "0.75rem" : "1rem",
+    },
+    formGrid: {
+      ...styles.formGrid,
+      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)",
+      gap: isMobile ? "0.75rem" : "1rem",
+    },
+    formActions: {
+      ...styles.formActions,
+      flexDirection: isMobile ? "column" : "row",
+    },
+    cancelBtn: {
+      ...styles.cancelBtn,
+      width: isMobile ? "100%" : "auto",
+    },
+    saveBtn: {
+      ...styles.saveBtn,
+      width: isMobile ? "100%" : "auto",
+    },
+    editProfileBtn: {
+      ...styles.editProfileBtn,
+      width: isMobile ? "100%" : "auto",
+      justifyContent: "center",
+    },
+    backBtn: {
+      ...styles.backBtn,
+      width: "100%",
+    },
+  };
+
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div style={responsiveStyles.container}>
+      <div style={responsiveStyles.card}>
         {/* Header Section */}
-        <div style={styles.header}>
-          <h1 style={styles.headerTitle}>Profile</h1>
+        <div style={responsiveStyles.header}>
+          <h1 style={responsiveStyles.headerTitle}>Profile</h1>
           <p style={styles.headerSubtitle}>Manage your personal information</p>
         </div>
 
-        <div style={styles.content}>
+        <div style={responsiveStyles.content}>
           {/* Profile Section */}
           <div style={styles.profileSection}>
             <div style={styles.avatarWrapper}>
               {profileData.photo || preview ? (
                 <img
-                  src={preview ? preview : `${baseURL}${profileData.photo}?v=${imageVersion}`}
+                  src={
+                    preview
+                      ? preview
+                      : `${baseURL}${profileData.photo}?v=${imageVersion}`
+                  }
                   alt="profile"
-                  style={styles.avatar}
+                  style={responsiveStyles.avatar}
                 />
               ) : (
-                <div style={styles.avatarPlaceholder}>
-                  <span style={styles.initials}>{initials}</span>
+                <div style={responsiveStyles.avatarPlaceholder}>
+                  <span style={responsiveStyles.initials}>{initials}</span>
                 </div>
               )}
 
               {editMode && (
-                <button onClick={() => fileRef.current.click()} style={styles.changePhotoBtn}>
+                <button
+                  onClick={() => fileRef.current.click()}
+                  style={responsiveStyles.changePhotoBtn}
+                >
                   <FaCamera size={14} />
                   <span style={{ marginLeft: "6px" }}>Change</span>
                 </button>
@@ -178,12 +277,17 @@ console.log('hi...',URL.createObjectURL(file));
             </div>
 
             <div style={styles.userInfo}>
-              <h2 style={styles.userName}>{profileData.name || "Your Name"}</h2>
+              <h2 style={responsiveStyles.userName}>
+                {profileData.name || "Your Name"}
+              </h2>
               <p style={styles.userEmail}>{profileData.email}</p>
             </div>
 
             {!editMode && (
-              <button onClick={() => setEditMode(true)} style={styles.editProfileBtn}>
+              <button
+                onClick={() => setEditMode(true)}
+                style={responsiveStyles.editProfileBtn}
+              >
                 <FaEdit size={14} />
                 Edit Profile
               </button>
@@ -192,20 +296,67 @@ console.log('hi...',URL.createObjectURL(file));
 
           {/* Details Section */}
           {!editMode ? (
-            <div style={styles.detailsGrid}>
-              <DetailCard icon={<FaUser />} label="Full Name" value={profileData.name} />
-              <DetailCard icon={<FaEnvelope />} label="Email" value={profileData.email} />
-              <DetailCard icon={<FaPhone />} label="Contact" value={profileData.phone} />
-              <DetailCard icon={<FaCalendar />} label="Date of Birth" value={profileData.dob} />
-              <DetailCard icon={<FaVenusMars />} label="Gender" value={profileData.gender} />
-              <DetailCard icon={<FaCity />} label="City" value={profileData.city} />
-              <DetailCard icon={<FaFlag />} label="State" value={profileData.state} />
-              <DetailCard icon={<FaAddressCard />} label="Address" value={profileData.address} fullWidth />
-              <DetailCard icon={<FaInfoCircle />} label="Bio" value={profileData.bio} fullWidth />
+            <div style={responsiveStyles.detailsGrid}>
+              <DetailCard
+                icon={<FaUser />}
+                label="Full Name"
+                value={profileData.name}
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaEnvelope />}
+                label="Email"
+                value={profileData.email}
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaPhone />}
+                label="Contact"
+                value={profileData.phone}
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaCalendar />}
+                label="Date of Birth"
+                value={profileData.dob}
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaVenusMars />}
+                label="Gender"
+                value={profileData.gender}
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaCity />}
+                label="City"
+                value={profileData.city}
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaFlag />}
+                label="State"
+                value={profileData.state}
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaAddressCard />}
+                label="Address"
+                value={profileData.address}
+                fullWidth
+                isMobile={isMobile}
+              />
+              <DetailCard
+                icon={<FaInfoCircle />}
+                label="Bio"
+                value={profileData.bio}
+                fullWidth
+                isMobile={isMobile}
+              />
             </div>
           ) : (
             <div style={styles.editForm}>
-              <div style={styles.formGrid}>
+              <div style={responsiveStyles.formGrid}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Full Name *</label>
                   <input
@@ -316,12 +467,16 @@ console.log('hi...',URL.createObjectURL(file));
                 </div>
               </div>
 
-              <div style={styles.formActions}>
-                <button onClick={() => setEditMode(false)} style={styles.cancelBtn}>
+              <div style={responsiveStyles.formActions}>
+                <button onClick={() => setEditMode(false)} style={responsiveStyles.cancelBtn}>
                   <FaTimes size={14} />
                   Cancel
                 </button>
-                <button onClick={handleUpdate} disabled={updateLoading} style={styles.saveBtn}>
+                <button
+                  onClick={handleUpdate}
+                  disabled={updateLoading}
+                  style={responsiveStyles.saveBtn}
+                >
                   {updateLoading ? (
                     "Saving..."
                   ) : (
@@ -337,7 +492,7 @@ console.log('hi...',URL.createObjectURL(file));
 
           {/* Back Button */}
           {!editMode && (
-            <button onClick={() => navigate(-1)} style={styles.backBtn}>
+            <button onClick={() => navigate(-1)} style={responsiveStyles.backBtn}>
               <FaArrowLeft size={14} />
               Go Back
             </button>
@@ -348,10 +503,19 @@ console.log('hi...',URL.createObjectURL(file));
   );
 }
 
-// Detail Card Component
-function DetailCard({ icon, label, value, fullWidth }) {
+// Detail Card Component (updated to accept isMobile)
+function DetailCard({ icon, label, value, fullWidth, isMobile }) {
+  const cardStyle = {
+    ...styles.detailCard,
+    padding: isMobile ? "0.75rem" : "1rem",
+    ...(fullWidth && { gridColumn: "span 2" }),
+  };
+  // On mobile, force fullWidth cards to span single column
+  if (isMobile && fullWidth) {
+    cardStyle.gridColumn = "span 1";
+  }
   return (
-    <div style={{ ...styles.detailCard, ...(fullWidth && styles.detailCardFull) }}>
+    <div style={cardStyle}>
       <div style={styles.detailIcon}>{icon}</div>
       <div style={styles.detailContent}>
         <p style={styles.detailLabel}>{label}</p>
@@ -361,21 +525,20 @@ function DetailCard({ icon, label, value, fullWidth }) {
   );
 }
 
-// Professional Black & White Styles
+// Base styles (no media queries needed, responsive handled by useMediaQuery)
 const styles = {
   container: {
     maxWidth: "900px",
     margin: "1rem auto",
     padding: "0 1.5rem",
     marginTop: "80px",
-    
   },
   card: {
     background: "#FFFFFF",
-    borderRadius: "0",
     boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
     border: "1px solid #E0E0E0",
-    borderRadius:"50px"
+    borderRadius: "50px",
+    overflow: "hidden",
   },
   header: {
     padding: "2rem 2rem 0 2rem",
@@ -409,15 +572,11 @@ const styles = {
     marginBottom: "1rem",
   },
   avatar: {
-    width: "100px",
-    height: "100px",
     borderRadius: "50%",
     objectFit: "cover",
     border: "2px solid #000000",
   },
   avatarPlaceholder: {
-    width: "100px",
-    height: "100px",
     borderRadius: "50%",
     background: "#F5F5F5",
     border: "2px solid #000000",
@@ -426,7 +585,6 @@ const styles = {
     justifyContent: "center",
   },
   initials: {
-    fontSize: "36px",
     fontWeight: "400",
     color: "#000000",
   },
@@ -436,11 +594,9 @@ const styles = {
     right: "-10px",
     display: "flex",
     alignItems: "center",
-    padding: "6px 12px",
     background: "#000000",
     color: "#FFFFFF",
     border: "none",
-    fontSize: "12px",
     cursor: "pointer",
     transition: "background 0.2s",
     borderRadius: "0",
@@ -450,7 +606,6 @@ const styles = {
     marginTop: "1rem",
   },
   userName: {
-    fontSize: "20px",
     fontWeight: "500",
     margin: "0 0 0.25rem 0",
     color: "#000000",
@@ -478,7 +633,6 @@ const styles = {
   },
   detailsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
     gap: "1rem",
     marginBottom: "1.5rem",
   },
@@ -486,12 +640,8 @@ const styles = {
     display: "flex",
     alignItems: "flex-start",
     gap: "1rem",
-    padding: "1rem",
     background: "#FAFAFA",
     border: "1px solid #F0F0F0",
-  },
-  detailCardFull: {
-    gridColumn: "span 2",
   },
   detailIcon: {
     color: "#000000",
@@ -520,7 +670,6 @@ const styles = {
   },
   formGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
     gap: "1rem",
   },
   formGroup: {
@@ -635,18 +784,16 @@ const styles = {
   },
 };
 
-// Add keyframe animation
+// Add keyframe animation to document head
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
-  
   button:hover {
     opacity: 0.85;
   }
-  
   input:focus, select:focus, textarea:focus {
     border-color: #000000 !important;
   }

@@ -8,6 +8,100 @@ const { sendOTP, sendMail } = require("../config/mailer");
 const crypto = require("crypto");
 const { blacklistedTokens } = require("../utils/tokenStore");
 
+// exports.login1 = async (req, res) => {
+//   let connection;
+
+//   try {
+//     const { email, password } = req.body;
+
+//     connection = await oracledb.getConnection(dbConfig);
+
+//     const result = await connection.execute(
+//       "SELECT * FROM users WHERE email = :1",
+//       [email],
+//       { outFormat: oracledb.OUT_FORMAT_OBJECT },
+//     );
+
+//     const rows = result.rows || [];
+
+//     if (rows.length === 0) {
+//       return res.status(400).json({ message: "User not found" });
+//     }
+
+//     const user = rows[0];
+
+//     // 🔐 PASSWORD CHECK
+//     const isMatch = await bcrypt.compare(password, user.PASSWORD);
+
+//     if (!isMatch) {
+//       return res.status(400).json({ message: "Wrong password" });
+//     }
+
+//     //  ALREADY VERIFIED → DIRECT LOGIN
+//     if (user.IS_VERIFIED === 1) {
+//       const token = jwt.sign(
+//         { email: user.EMAIL, role: user.ROLE },
+//         process.env.JWT_SECRET,
+//         { expiresIn: "1h" },
+//       );
+
+//       return res.json({
+//         accessToken: token,
+//         otpRequired: false,
+//       });
+//     }
+
+//     // 📱 TRUSTED DEVICE CHECK
+//     const userAgent = req.headers["user-agent"];
+
+//     const deviceCheck = await connection.execute(
+//       `SELECT * FROM trusted_devices 
+//        WHERE user_email = :1 
+//        AND user_agent = :2 
+//        AND expires_at > SYSDATE`,
+//       [email, userAgent],
+//       { outFormat: oracledb.OUT_FORMAT_OBJECT },
+//     );
+
+//     //  TRUSTED DEVICE → SKIP OTP
+//     if (deviceCheck.rows.length > 0) {
+//       const token = jwt.sign(
+//         { email: user.EMAIL, role: user.ROLE },
+//         process.env.JWT_SECRET,
+//         { expiresIn: "1h" },
+//       );
+
+//       return res.json({
+//         accessToken: token,
+//         otpRequired: false,
+//       });
+//     }
+
+//     //  NOT TRUSTED → SEND OTP
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+//     await connection.execute(
+//       `UPDATE users 
+//        SET otp = :1, 
+//            otp_expires = SYSDATE + (1/1440)  
+//        WHERE email = :2`,
+//       [otp, email],
+//       { autoCommit: true },
+//     );
+
+//     await sendOTP(email, otp);
+
+//     return res.json({
+//       message: "OTP sent",
+//       otpRequired: true,
+//     });
+//   } catch (err) {
+//     console.log("❌ LOGIN ERROR:", err);
+//     res.status(500).json({ message: "Server error" });
+//   } finally {
+//     if (connection) await connection.close();
+//   }
+// };
 exports.login = async (req, res) => {
   let connection;
 
@@ -17,87 +111,94 @@ exports.login = async (req, res) => {
     connection = await oracledb.getConnection(dbConfig);
 
     const result = await connection.execute(
-      "SELECT * FROM users WHERE email = :1",
+      `SELECT * FROM users WHERE email = :1`,
       [email],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
 
-    const rows = result.rows || [];
-
-    if (rows.length === 0) {
-      return res.status(400).json({ message: "User not found" });
+    if (result.rows.length === 0) {
+      return res.status(400).json({
+        message: "User not found",
+      });
     }
 
-    const user = rows[0];
+    const user = result.rows[0];
 
-    // 🔐 PASSWORD CHECK
+    // PASSWORD CHECK
     const isMatch = await bcrypt.compare(password, user.PASSWORD);
 
     if (!isMatch) {
-      return res.status(400).json({ message: "Wrong password" });
-    }
-
-    //  ALREADY VERIFIED → DIRECT LOGIN
-    if (user.IS_VERIFIED === 1) {
-      const token = jwt.sign(
-        { email: user.EMAIL, role: user.ROLE },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" },
-      );
-
-      return res.json({
-        accessToken: token,
-        otpRequired: false,
+      return res.status(400).json({
+        message: "Wrong password",
       });
     }
 
-    // 📱 TRUSTED DEVICE CHECK
-    const userAgent = req.headers["user-agent"];
+    // DEVICE TOKEN FROM COOKIE
+    const deviceToken = req.cookies.deviceToken;
 
-    const deviceCheck = await connection.execute(
-      `SELECT * FROM trusted_devices 
-       WHERE user_email = :1 
-       AND user_agent = :2 
+    // CHECK TRUSTED DEVICE
+    const trusted = await connection.execute(
+      `SELECT * FROM trusted_devices
+       WHERE user_email = :1
+       AND device_token = :2
        AND expires_at > SYSDATE`,
-      [email, userAgent],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      [email, deviceToken],
+      { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
 
-    //  TRUSTED DEVICE → SKIP OTP
-    if (deviceCheck.rows.length > 0) {
-      const token = jwt.sign(
-        { email: user.EMAIL, role: user.ROLE },
+    // TRUSTED DEVICE
+    if (trusted.rows.length > 0) {
+
+      const accessToken = jwt.sign(
+        {
+          email: user.EMAIL,
+          role: user.ROLE,
+        },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" },
+        {
+          expiresIn: "1d",
+        }
       );
 
+      // SAVE JWT IN COOKIE
+      res.cookie("token", accessToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
       return res.json({
-        accessToken: token,
         otpRequired: false,
+        message: "Login successful",
       });
     }
 
-    //  NOT TRUSTED → SEND OTP
+    // NEW DEVICE → SEND OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     await connection.execute(
-      `UPDATE users 
-       SET otp = :1, 
-           otp_expires = SYSDATE + (1/1440)  
+      `UPDATE users
+       SET otp = :1,
+           otp_expires = SYSDATE + (1/1440)
        WHERE email = :2`,
       [otp, email],
-      { autoCommit: true },
+      { autoCommit: true }
     );
 
     await sendOTP(email, otp);
 
     return res.json({
-      message: "OTP sent",
       otpRequired: true,
+      message: "OTP sent",
     });
+
   } catch (err) {
-    console.log("❌ LOGIN ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    console.log(err);
+
+    res.status(500).json({
+      message: "Server error",
+    });
   } finally {
     if (connection) await connection.close();
   }
@@ -157,16 +258,23 @@ exports.verifyOtp = async (req, res) => {
       { autoCommit: true },
     );
 
-    res.cookie("deviceToken", deviceToken, {
-      httpOnly: true,
-      sameSite: "strict",
-    });
+    // res.cookie("deviceToken", deviceToken, {
+    //   httpOnly: true,
+    //   sameSite: "strict",
+    // });
+           res.cookie("token", token, {
+  httpOnly: true,
+  secure: false,
+  sameSite: "strict",
+  maxAge: 24 * 60 * 60 * 1000,
+});
 
     const token = jwt.sign({ email, role: user.ROLE }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    res.json({ token, message: "Login successful" });
+    // res.json({ token, message: "Login successful" });
+
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
@@ -174,39 +282,7 @@ exports.verifyOtp = async (req, res) => {
     if (connection) await connection.close();
   }
 };
-///////////////
-// exports.resendOtp = async (req, res) => {
-//   const { email } = req.body;
-//   let connection;
-
-//   try {
-//     connection = await oracledb.getConnection(dbConfig);
-
-//     //  new OTP generate
-//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-//     const expires = new Date(Date.now() + 60 * 1000);
-
-//     // 🔥 DB update (IMPORTANT)
-//     await connection.execute(
-//       `UPDATE users 
-//        SET otp = :1, otp_expires = :2 
-//        WHERE email = :3`,
-//       [otp, expires, email],
-//       { autoCommit: true },
-//     );
-
-//     // 🔥 send mail
-//     await sendOTP(email, otp);
-
-//     res.json({ message: "OTP resent successfully" });
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({ message: "Server error" });
-//   } finally {
-//     if (connection) await connection.close();
-//   }
-// };
-
+///////////////resendotp
 exports.resendOtp = async (req, res) => {
   const { email } = req.body;
   let connection;
@@ -469,32 +545,19 @@ exports.toggleAdmin = async (req, res) => {
 };
 
 ////////////////////////////////////
+// exports.logout = async (req, res) => {
+//   res.clearCookie("deviceToken");
+
+//   res.json({ message: "Logged out" });
+// };
+
 exports.logout = async (req, res) => {
+
+  res.clearCookie("token");
+
   res.clearCookie("deviceToken");
 
-  res.json({ message: "Logged out" });
-};
-
-///////////////refresh token
-
-exports.refreshToken = async (req, res) => {
-  const token = req.cookies.refreshToken;
-
-  if (!token) {
-    return res.status(401).json({ message: "No refresh token" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-
-    const accessToken = jwt.sign(
-      { email: decoded.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "15m" },
-    );
-
-    res.json({ accessToken });
-  } catch {
-    res.status(401).json({ message: "Invalid refresh token" });
-  }
+  res.json({
+    message: "Logged out",
+  });
 };
