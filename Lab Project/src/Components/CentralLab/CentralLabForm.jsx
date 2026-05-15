@@ -2051,7 +2051,7 @@ export default function CentralLabForm({ onSaved }) {
 
     // Auto-navigate to centrallab after 3 seconds
     setTimeout(() => {
-      navigate("/centrallab");
+      navigate("/alltrf");
     }, 3000);
 
     if (onSaved) {
@@ -2439,7 +2439,7 @@ export default function CentralLabForm({ onSaved }) {
                   onClick={() => {
                     setShowSummaryModal(false);
                     setSummaryRecord(null);
-                    navigate("/centrallab");
+                    navigate("/alltrf");
                     window.location.reload();
                   }}
                   style={{ color: C.white, fontWeight: 600 }}

@@ -40,6 +40,17 @@ if (
     .trf-sortable-th:hover {
       background-color: #f1f5f9 !important;
     }
+    .trf-pdf-avoid-break,
+    .trf-pdf-table-row,
+    .trf-pdf-table,
+    .trf-pdf-section {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .trf-pdf-page-break {
+      page-break-after: always !important;
+      break-after: page !important;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -102,17 +113,27 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [productRanges, setProductRanges] = useState(null);
+  const [pdfLibraryLoaded, setPdfLibraryLoaded] = useState(false);
   const reportRef = useRef(null);
 
   // Dynamically load html2pdf if not present
   useEffect(() => {
-    if (typeof window !== "undefined" && !window.html2pdf) {
-      const script = document.createElement("script");
-      script.src =
-        "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-      script.async = true;
-      document.body.appendChild(script);
+    if (typeof window === "undefined") return;
+
+    if (window.html2pdf) {
+      setPdfLibraryLoaded(true);
+      return;
     }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+    script.async = true;
+    script.onload = () => setPdfLibraryLoaded(true);
+    script.onerror = () => {
+      console.error("Failed to load html2pdf library.");
+    };
+    document.body.appendChild(script);
   }, []);
 
   useEffect(() => {
@@ -172,18 +193,31 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
 
   // PDF download using html2pdf
   const downloadPDF = async () => {
-    if (!reportRef.current) return;
-    if (typeof window === "undefined" || !window.html2pdf) {
-      alert("PDF generator is still loading. Please try again in a moment.");
+    if (typeof window === "undefined") return;
+    if (!details || loading) {
+      alert("Please wait until the report is fully loaded before downloading.");
       return;
     }
+    if (!reportRef.current) {
+      alert("Report is still rendering. Please wait a moment and try again.");
+      return;
+    }
+    if (!pdfLibraryLoaded) {
+      alert("PDF generator is still loading. Please wait a moment.");
+      return;
+    }
+
     const element = reportRef.current;
     const opt = {
-      margin: [0.0, 0.2, 0.2, 0.2],
+      margin: [0.2, 0.2, 0.2, 0.2],
       filename: `Test_Report_${trf.trfCode}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, letterRendering: true },
+      html2canvas: { scale: 2, letterRendering: true, useCORS: true },
       jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+      pagebreak: {
+        mode: ["css", "legacy"],
+        avoid: ["tr", "thead", ".trf-pdf-avoid-break", ".trf-pdf-table-row"],
+      },
     };
     try {
       await window.html2pdf().set(opt).from(element).save();
@@ -201,13 +235,19 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
       >
         <div style={styles.modalHeader}>
           <h2 style={styles.modalTitle}>📋 Test Request Report</h2>
-          <div style={{ display: "flex", gap: "12px" }}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <button
               onClick={downloadPDF}
               style={styles.downloadPdfBtn}
-              disabled={loading || !details}
+              disabled={loading || !details || !pdfLibraryLoaded}
             >
-              📥 Download PDF
+              {loading || !details || !pdfLibraryLoaded ? (
+                <>
+                  <Spinner size={16} color="#ffffff" /> Loading PDF...
+                </>
+              ) : (
+                "📥 Download PDF"
+              )}
             </button>
             <button style={styles.modalCloseBtn} onClick={onClose}>
               ×
@@ -221,11 +261,26 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
               <p>Loading details...</p>
             </div>
           ) : (
-            <div ref={reportRef} style={styles.reportContainer}>
+            <div
+              ref={reportRef}
+              style={styles.reportContainer}
+              className="trf-pdf-section"
+            >
               {/* Header Section */}
-              <div style={styles.reportHeader}>
+              <div style={styles.reportHeader} className="trf-pdf-avoid-break">
                 <div style={styles.reportTitleSection}>
-                  <h1 style={styles.reportTitle}>TEST REPORT</h1>
+                  <div style={{display:"flex",gap:"20px"}}>
+                 <img
+            src="assets/photos/aryan.jpeg"
+            alt="logo"
+            style={{
+              width: "40px",
+              height: "40px",
+              objectFit: "cover",
+              
+              border: "0.5px solid #c7c7c7",
+            }}
+          /> <h2 style={styles.reportTitle}>Aryan Food Ingredients Limited </h2></div>
                 </div>
                 {/* <div style={styles.reportLogo}>
                   <span style={styles.logoText}>🔬 MEDILAB</span>
@@ -233,9 +288,9 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
               </div>
 
               {/* Patient & Request Info */}
-              <div style={styles.infoCards}>
-                <div style={styles.infoCard}>
-                  <h3 style={styles.infoCardTitle}>Patient Information</h3>
+              <div style={styles.infoCards} className="trf-pdf-avoid-break">
+                <div style={styles.infoCard} className="trf-pdf-avoid-break">
+                  <h3 style={styles.infoCardTitle}>TRF Information</h3>
                   <div style={styles.infoRow}>
                     <strong>TRF Code:</strong> {details.trf.trfCode}
                   </div>
@@ -267,7 +322,7 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
                 </div>
                 <div style={styles.infoCard}>
                   <h3 style={styles.infoCardTitle}>
-                    Collection & Report Details
+                    Lab Report Details
                   </h3>
                   <div style={styles.infoRow}>
                     <strong>Lab:</strong> {details.trf.labName}
@@ -279,7 +334,7 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
                     <strong>Lab Type:</strong> {details.trf.labType}
                   </div>
                   <div style={styles.infoRow}>
-                    <strong>Submitted At:</strong>{" "}
+                    <strong>Submitted To:</strong>{" "}
                     {formatDate(details.trf.submittedAt)}
                   </div>
                   <div style={styles.infoRow}>
@@ -296,7 +351,11 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
               {details.fieldsByTest &&
                 Object.entries(details.fieldsByTest).map(
                   ([testName, fields]) => (
-                    <div key={testName} style={styles.testTableWrapper}>
+                    <div
+                      key={testName}
+                      style={styles.testTableWrapper}
+                      className="trf-pdf-avoid-break"
+                    >
                       <h3 style={styles.testTableTitle}>🔬 {testName}</h3>
                       <table style={styles.resultsTable}>
                         <thead>
@@ -346,6 +405,7 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
                               <tr
                                 key={field.fieldRowId}
                                 style={styles.tableRow}
+                                className="trf-pdf-table-row"
                               >
                                 <td style={styles.tableCell}>
                                   <strong>{field.label}</strong>
@@ -369,7 +429,10 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
 
               {/* Interpretation / Remark Section */}
               {details.trf.remark && (
-                <div style={styles.interpretationBox}>
+                <div
+                  style={styles.interpretationBox}
+                  className="trf-pdf-avoid-break"
+                >
                   <h4 style={styles.interpretationTitle}>
                     📝 Interpretation & Remarks
                   </h4>
@@ -378,20 +441,32 @@ const ViewModal = ({ trf, onClose, allProducts }) => {
               )}
 
               {/* Footer / Signatures */}
-              {/* <div style={styles.reportFooter}>
-                <div style={styles.signatureLine}>
+              <div style={styles.reportFooter} className="trf-pdf-avoid-break">
+                {/* <div style={styles.signatureLine}>
                   <div>_________________________</div>
                   <div>Lab Technician</div>
                 </div>
                 <div style={styles.signatureLine}>
                   <div>_________________________</div>
                   <div>Pathologist</div>
-                </div>
+                </div> */}
                 <div style={styles.reportFooterText}>
-                  This report is generated electronically and requires no
-                  signature.
+                Aryan Food Ingredients Limited “Go Organic with Aryan”
+India 
+{" "}
+  <a
+    href="https://www.aryanint.com"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{
+      textDecoration: "none",
+     
+    }}
+  >
+    www.aryanint.com
+  </a>
                 </div>
-              </div> */}
+              </div>
             </div>
           )}
         </div>

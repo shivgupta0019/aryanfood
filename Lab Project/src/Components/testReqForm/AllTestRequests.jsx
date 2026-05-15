@@ -141,14 +141,12 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
               {/* Report Header */}
               <div style={styles.reportHeader}>
                 <div>
-                  <h1 style={styles.reportTitle}>LABORATORY TEST REPORT</h1>
+                  <h2 style={styles.reportTitle}>Aryan Food Ingredients Limited </h2>
                   <p style={styles.reportSubtitle}>
-                    Clinical Diagnostics & Analysis
+               
                   </p>
                 </div>
-                <div style={styles.reportLogo}>
-                  <span style={styles.logoText}>🔬 MEDILAB</span>
-                </div>
+                 
               </div>
 
               {/* Information Cards */}
@@ -159,8 +157,7 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
                     <strong>TRF Code:</strong> {trf.trfCode}
                   </div>
                   <div style={styles.infoRow}>
-                    <strong>Company:</strong> {trf.companyName} (
-                    {trf.companyCode})
+                    <strong>Company:</strong> {trf.companyName}  
                   </div>
                   <div style={styles.infoRow}>
                     <strong>Request Name:</strong> {trf.requestName}
@@ -169,16 +166,25 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
                     <strong>Product:</strong> {trf.productName}
                   </div>
                   <div style={styles.infoRow}>
+                    <strong>Product Code:</strong> {trf.sampleCode || "—"}
+                  </div>
+                  <div style={styles.infoRow}>
                     <strong>Lot No.:</strong> {trf.lotNo || "—"}
                   </div>
                   <div style={styles.infoRow}>
-                    <strong>Sample Code:</strong> {trf.sampleCode || "—"}
+                    <strong>Created:</strong> {formatDateTime(trf.createdAt)}
                   </div>
                 </div>
                 <div style={styles.infoCard}>
                   <h3 style={styles.infoCardTitle}>Collection & Status</h3>
                   <div style={styles.infoRow}>
-                    <strong>Lab:</strong> {trf.labName} ({trf.labCode}) –{" "}
+                    <strong>Lab Code:</strong> {trf.labName}  
+                  </div>
+                    <div style={styles.infoRow}>
+                    <strong>Lab:</strong>  {trf.labCode}  
+                  </div>
+                    <div style={styles.infoRow}>
+                    <strong>Lab Type:</strong>  
                     {trf.labType}
                   </div>
                   <div style={styles.infoRow}>
@@ -189,9 +195,7 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
                       <span style={styles.statusBadgePending}>⏳ Pending</span>
                     )}
                   </div>
-                  <div style={styles.infoRow}>
-                    <strong>Created:</strong> {formatDateTime(trf.createdAt)}
-                  </div>
+                  
                   <div style={styles.infoRow}>
                     <strong>Last Updated:</strong>{" "}
                     {formatDateTime(trf.updatedAt)}
@@ -268,6 +272,147 @@ const ViewModal = ({ trf, fieldsByTest, onClose, loading }) => {
 
 // ========== Edit/Fill Modal ==========
 const EditModal = ({
+  trf,
+  fieldsByTest,
+  onSave,
+  onCancel,
+  onFieldChange,
+  loading,
+  saving,
+}) => {
+  if (!trf) return null;
+
+  const getStatusBadge = () => {
+    if (trf.status === "filled") {
+      return (
+        <span style={styles.editStatusBadgeFilled}>
+          ✏️ Edit Mode (Results already filled)
+        </span>
+      );
+    }
+    return (
+      <span style={styles.editStatusBadgePending}>
+        📝 Fill Mode (Enter test values)
+      </span>
+    );
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onCancel}>
+      <div
+        style={{ ...styles.modalContent, maxWidth: "1100px", width: "90%" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={styles.modalHeader}>
+          <h2 style={styles.modalTitle}>
+            {trf.status === "filled"
+              ? "✏️ Edit Test Results"
+              : "📝 Fill Test Values"}
+          </h2>
+          <button style={styles.modalCloseBtn} onClick={onCancel}>
+            ×
+          </button>
+        </div>
+
+        {/* Context Banner */}
+        <div style={styles.editContextBanner}>
+          <div style={styles.editContextInfo}>
+            <span style={styles.editContextLabel}>Request:</span>
+            <strong>{trf.requestName}</strong>
+            <span style={styles.editContextSeparator}>•</span>
+            <span style={styles.editContextLabel}>Product:</span>
+            <strong>{trf.productName}</strong>
+            <span style={styles.editContextSeparator}>•</span>
+            <span style={styles.editContextLabel}>Lot No:</span>
+            <strong>{trf.lotNo || "—"}</strong>
+          </div>
+          {getStatusBadge()}
+        </div>
+
+        <div style={styles.modalBody}>
+          {loading ? (
+            <div style={styles.modalLoaderContainer}>
+              <Spinner size={40} />
+              <p>Loading fields...</p>
+            </div>
+          ) : saving ? (
+            <div style={styles.modalLoaderContainer}>
+              <Spinner size={40} />
+              <p>Saving changes...</p>
+            </div>
+          ) : (
+            <div style={styles.editFormContainer}>
+              {Object.entries(fieldsByTest).map(([testName, fields]) => (
+                <div key={testName} style={styles.editTestCard}>
+                  <div style={styles.editTestCardHeader}>
+                    <span style={styles.editTestIcon}>🔬</span>
+                    <h3 style={styles.editTestTitle}>{testName} Analysis</h3>
+                  </div>
+                  <div style={styles.editFieldsGrid}>
+                    {fields.map((field) => (
+                      <div key={field.fieldRowId} style={styles.editFieldGroup}>
+                        <label style={styles.editFieldLabel}>
+                          {field.label}
+                          {field.placeholder?.toLowerCase().includes("required") && (
+                            <span style={styles.requiredStar}>*</span>
+                          )}
+                        </label>
+                        <input
+                          type="text"
+                          value={field.currentValue || ""}
+                          onChange={(e) =>
+                            onFieldChange(
+                              testName,
+                              field.fieldRowId,
+                              e.target.value
+                            )
+                          }
+                          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                          style={styles.editFieldInput}
+                          disabled={saving}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {Object.keys(fieldsByTest).length === 0 && (
+                <div style={styles.editEmptyState}>
+                  <span>📭</span>
+                  <p>No test fields available for this request.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style={styles.modalFooter}>
+          <button
+            onClick={onSave}
+            style={styles.editSaveBtn}
+            disabled={loading || saving}
+          >
+            {saving ? (
+              <>
+                <Spinner size={18} color="#ffffff" /> Saving...
+              </>
+            ) : (
+              "💾 Save Changes"
+            )}
+          </button>
+          <button
+            onClick={onCancel}
+            style={styles.editCancelBtn}
+            disabled={loading || saving}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+const EditModal1 = ({
   trf,
   fieldsByTest,
   onSave,
@@ -1510,6 +1655,148 @@ const styles = {
     fontSize: "0.7rem",
     color: "#94a3b8",
   },
+  editContextBanner: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "12px",
+    padding: "14px 28px",
+    background: "#f8fafc",
+    borderBottom: "1px solid #e2e8f0",
+    fontSize: "0.85rem",
+  },
+  editContextInfo: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "6px",
+    color: "#334155",
+  },
+  editContextLabel: {
+    color: "#64748b",
+    marginRight: "4px",
+  },
+  editContextSeparator: {
+    margin: "0 8px",
+    color: "#cbd5e1",
+  },
+  editStatusBadgeFilled: {
+    background: "#ede9fe",
+    color: "#5b21b6",
+    padding: "4px 12px",
+    borderRadius: "30px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+  },
+  editStatusBadgePending: {
+    background: "#dbeafe",
+    color: "#1e40af",
+    padding: "4px 12px",
+    borderRadius: "30px",
+    fontSize: "0.7rem",
+    fontWeight: "500",
+  },
+  editFormContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "28px",
+  },
+  editTestCard: {
+    background: "#ffffff",
+    borderRadius: "20px",
+    border: "1px solid #e2e8f0",
+    overflow: "hidden",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+    transition: "box-shadow 0.2s, border-color 0.2s",
+  },
+  editTestCardHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "16px 24px",
+    background: "#fafcff",
+    borderBottom: "1px solid #eef2ff",
+  },
+  editTestIcon: {
+    fontSize: "1.3rem",
+  },
+  editTestTitle: {
+    fontSize: "1.05rem",
+    fontWeight: "600",
+    margin: 0,
+    color: "#0f172a",
+    letterSpacing: "-0.2px",
+  },
+  editFieldsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+    gap: "20px 24px",
+    padding: "24px",
+  },
+  editFieldGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  editFieldLabel: {
+    fontSize: "0.8rem",
+    fontWeight: "600",
+    color: "#334155",
+    textTransform: "uppercase",
+    letterSpacing: "0.3px",
+  },
+  requiredStar: {
+    color: "#ef4444",
+    marginLeft: "4px",
+  },
+  editFieldInput: {
+    padding: "10px 14px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "14px",
+    fontSize: "0.9rem",
+    fontFamily: "inherit",
+    transition: "all 0.2s ease",
+    outline: "none",
+    background: "#ffffff",
+    color: "#0f172a",
+  },
+  editFieldInputFocus: {
+    borderColor: "#3b82f6",
+    boxShadow: "0 0 0 3px rgba(59,130,246,0.1)",
+  },
+  editEmptyState: {
+    textAlign: "center",
+    padding: "48px 24px",
+    background: "#f8fafc",
+    borderRadius: "20px",
+    color: "#64748b",
+  },
+  editSaveBtn: {
+    background: "#059669",
+    color: "#fff",
+    border: "none",
+    padding: "10px 28px",
+    borderRadius: "40px",
+    cursor: "pointer",
+    fontSize: "0.85rem",
+    fontWeight: "500",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+    transition: "background 0.2s",
+  },
+  editCancelBtn: {
+    background: "#f1f5f9",
+    color: "#334155",
+    border: "1px solid #e2e8f0",
+    padding: "10px 24px",
+    borderRadius: "40px",
+    cursor: "pointer",
+    fontSize: "0.85rem",
+    fontWeight: "500",
+    transition: "background 0.2s",
+  },
 };
 
 if (typeof document !== "undefined") {
@@ -1519,3 +1806,5 @@ if (typeof document !== "undefined") {
 }
 
 export default AllTestRequests;
+
+ 

@@ -180,11 +180,11 @@ export default function Dashboard() {
             src="assets/photos/aryan.jpeg"
             alt="logo"
             style={{
-              width: "38px",
-              height: "38px",
+              width: "40px",
+              height: "40px",
               objectFit: "cover",
-              borderRadius: "50%",
-              border: "2.5px solid #111",
+              
+              border: "0.5px solid #c7c7c7",
             }}
           />
           <span
