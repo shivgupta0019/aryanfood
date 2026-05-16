@@ -1092,7 +1092,7 @@ const TestRequestForm = () => {
             />
           </div>
           <div style={styles.fieldGroup}>
-            <label style={styles.label}>Sample Code</label>
+            <label style={styles.label}>Product Code</label>
             <input
               type="text"
               value={sampleCode}
@@ -1165,7 +1165,7 @@ const TestRequestForm = () => {
             ))}
             {selectedTests.length === 0 && (
               <div style={styles.emptyTestsMsg}>
-                ☑️ Select at least one test category.
+                ☑️ Please select Product.
               </div>
             )}
           </>

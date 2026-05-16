@@ -33,7 +33,7 @@ export default function LoginPage() {
         navigate("/otp");
       } else {
         localStorage.setItem("token", res.data.accessToken);
-        navigate("/centrallab");
+        navigate("/alltrf");
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Login failed";
