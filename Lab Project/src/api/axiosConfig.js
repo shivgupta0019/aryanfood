@@ -6,7 +6,6 @@ let run = pro;
 export const baseURL = run;
 const api = axios.create({
   baseURL: `${run}/api`,
-  //  NO withCredentials - JWT tokens in localStorage only
 });
 
 //  Request interceptor: Attach JWT token from localStorage
